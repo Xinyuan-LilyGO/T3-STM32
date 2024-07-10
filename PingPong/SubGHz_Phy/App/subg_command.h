@@ -1,10 +1,10 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_subghz_phy.h
+  * @file    subg_command.h
   * @author  MCD Application Team
-  * @brief   Header of application of the SubGHz_Phy Middleware
-   ******************************************************************************
+  * @brief   Header for driver command.c module
+  ******************************************************************************
   * @attention
   *
   * Copyright (c) 2021 STMicroelectronics.
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __APP_SUBGHZ_PHY_H__
-#define __APP_SUBGHZ_PHY_H__
+#ifndef __SUBG_COMMAND_H__
+#define __SUBG_COMMAND_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +37,9 @@ extern "C" {
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
+/* Character added when a RX error has been detected */
+#define AT_ERROR_RX_CHAR 0x01
+
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */
@@ -51,16 +54,17 @@ extern "C" {
 
 /* USER CODE END EM */
 
-/* Exported Functions Prototypes ---------------------------------------------*/
+/* Exported functions prototypes ---------------------------------------------*/
 /**
-  * @brief  Init SubGHz Radio Application
+  * @brief Initializes command module
+  * @param CmdProcessNotify cb to signal application that character has been received
   */
-void MX_SubGHz_Phy_Init(void);
+void CMD_Init(void (*CmdProcessNotify)(void));
 
 /**
-  * @brief  SubGHz Radio Application Process
+  * @brief Process the command
   */
-void MX_SubGHz_Phy_Process(void);
+void CMD_Process(void);
 
 /* USER CODE BEGIN EFP */
 
@@ -70,4 +74,4 @@ void MX_SubGHz_Phy_Process(void);
 }
 #endif
 
-#endif /*__APP_SUBGHZ_PHY_H__*/
+#endif /* __SUBG_COMMAND_H__ */

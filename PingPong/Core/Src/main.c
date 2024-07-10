@@ -40,6 +40,13 @@
 #include "sys_app.h"
 #include "app_version.h"
 #include "subghz_phy_version.h"
+
+#include "subghz_phy_app.h"
+#include "radio.h"
+#include "stm32_timer.h"
+#include "utilities_def.h"
+#include "subg_command.h"
+#include "subg_at.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,9 +98,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   if(GPIO_Pin == BOOT_Pin) {
     LOG_INFO("BOOT PRESS\n");
     if(task_idx % 2 == 0) {
-      UTIL_SEQ_SetTask((1 << CFG_SEQ_Prio_0), UTIL_SEQ_RFU);
+      // UTIL_SEQ_SetTask((1 << CFG_SEQ_Prio_0), UTIL_SEQ_RFU);
     }else{
-      UTIL_SEQ_SetTask((1 << CFG_MY_TASK_ID_1), UTIL_SEQ_RFU);
+      UTIL_SEQ_SetTask((1 << CFG_TASK_ID_BOOT_BTN), UTIL_SEQ_RFU);
     }
 
     task_idx++;
@@ -101,7 +108,47 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
+#define BUF_SIZE 16
+uint8_t usart_buf[BUF_SIZE]={0};
+uint16_t usart_widx = 0;
+uint16_t usart_cnt = 0;
+uint16_t buff_over = 0;
 
+void USART_GetChar(uint8_t *rxChar, uint16_t size, uint8_t error)
+{
+  if(*rxChar != '\n') {
+    
+    if(usart_cnt < BUF_SIZE - 1) {
+      usart_buf[usart_cnt] = *rxChar;
+      usart_cnt++;
+    }
+  } else {
+    usart_buf[usart_cnt] = '\0';
+    buff_over = 1;
+  }
+
+  UTIL_SEQ_SetTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU);
+}
+
+void USART_process(void)
+{
+  LOG_TRACE("USART_process:[%s]\n", usart_buf);
+  if(buff_over == 1) {
+    buff_over = 0;
+    usart_cnt = 0;
+  }
+}
+
+static void CmdProcessNotify(void)
+{
+  /* USER CODE BEGIN CmdProcessNotify_1 */
+
+  /* USER CODE END CmdProcessNotify_1 */
+  UTIL_SEQ_SetTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU);
+  /* USER CODE BEGIN CmdProcessNotify_2 */
+
+  /* USER CODE END CmdProcessNotify_2 */
+}
 /* USER CODE END 0 */
 
 /**
@@ -129,8 +176,16 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
   UTIL_SEQ_Init();
-  UTIL_SEQ_RegTask((1 << CFG_SEQ_Prio_0), UTIL_SEQ_RFU, MyTask0);
-  UTIL_SEQ_RegTask((1 << CFG_MY_TASK_ID_1), UTIL_SEQ_RFU, MyTask1);
+
+  UTIL_ADV_TRACE_Init();
+  // UTIL_ADV_TRACE_RegisterTimeStampFunction(TimestampNow);
+  UTIL_ADV_TRACE_SetVerboseLevel(VLEVEL_M);
+  // UTIL_ADV_TRACE_StartRxProcess(USART_GetChar);
+
+  segger_rtt_init("Hello SEGGER RTT\n");
+  uint32_t LED_tick = HAL_GetTick();
+  uint32_t RTC_tick = HAL_GetTick();
+
   
   /* USER CODE END SysInit */
 
@@ -141,9 +196,21 @@ int main(void)
   MX_RTC_Init();
   MX_SubGHz_Phy_Init();
   /* USER CODE BEGIN 2 */
+#if 0
+  /*Initialize the terminal */
+  // UTIL_ADV_TRACE_Init();
+  // UTIL_ADV_TRACE_RegisterTimeStampFunction(TimestampNow);
+  // UTIL_ADV_TRACE_SetVerboseLevel(VLEVEL_M);
+  // UTIL_ADV_TRACE_StartRxProcess(USART_GetChar);
+
+  // CMD_Init(CmdProcessNotify);
+  // UTIL_SEQ_RegTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU, CMD_Process);
+
+  
+  // UTIL_ADV_TRACE_StartRxProcess(CMD_GetChar);
   // HAL_SUBGHZ_Init(&hsubghz);
-  UTIL_ADV_TRACE_Init();
-  UTIL_ADV_TRACE_SetVerboseLevel(VLEVEL_M);
+  // UTIL_SEQ_RegTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU, USART_process);
+  // UTIL_SEQ_RegTask((1 << CFG_TASK_ID_BOOT_BTN), UTIL_SEQ_RFU, MyTask1);
 
   RTC_Time.Hours = 14;
   RTC_Time.Minutes = 20;
@@ -157,48 +224,46 @@ int main(void)
   HAL_RTC_SetDate(&hrtc, &RTC_Date, RTC_FORMAT_BCD);
   
   segger_rtt_init("Hello SEGGER RTT\n");
-  
-  LOG_INFO("Hello World\n");
-
-  uint32_t LED_tick = HAL_GetTick();
-  uint32_t RTC_tick = HAL_GetTick();
-
   char txBuffer[] = "Hello World\n";
-  uint8_t buf[5] = {1, 2, 3, 4, 5};
 
   while(1)
   {
     if(HAL_GetTick() - LED_tick > 200) {
       LED_tick = HAL_GetTick();
-      HAL_SUBGHZ_WriteBuffer(&hsubghz, 0x00, buf, 5);
+      // HAL_SUBGHZ_WriteBuffer(&hsubghz, 0x00, (uint8_t *)txBuffer, strlen(txBuffer));
       LED1_TRI;
     }
 
-    if(HAL_GetTick() - RTC_tick > 1000) {
-      RTC_tick = HAL_GetTick();
+    // if(HAL_GetTick() - RTC_tick > 1000) {
+      // RTC_tick = HAL_GetTick();
+      // AT_PPRINTF("Hello\n");
+
       // vcom_Trace_DMA((uint8_t *)txBuffer, strlen(txBuffer));
       // HAL_UART_Transmit_DMA(&huart1, (uint8_t *)txBuffer, strlen(txBuffer));
 
       /* Get SubGHY_Phy APP version*/
-      APP_LOG(TS_OFF, VLEVEL_M, "APPLICATION_VERSION: V%X.%X.%X\r\n",
-              (uint8_t)(APP_VERSION_MAIN),
-              (uint8_t)(APP_VERSION_SUB1),
-              (uint8_t)(APP_VERSION_SUB2));
+      // APP_LOG(TS_OFF, VLEVEL_M, "APPLICATION_VERSION: V%X.%X.%X\r\n",
+      //         (uint8_t)(APP_VERSION_MAIN),
+      //         (uint8_t)(APP_VERSION_SUB1),
+      //         (uint8_t)(APP_VERSION_SUB2));
 
-      /* Get MW SubGhz_Phy info */
-      APP_LOG(TS_OFF, VLEVEL_M, "MW_RADIO_VERSION:    V%X.%X.%X\r\n",
-              (uint8_t)(SUBGHZ_PHY_VERSION_MAIN),
-              (uint8_t)(SUBGHZ_PHY_VERSION_SUB1),
-              (uint8_t)(SUBGHZ_PHY_VERSION_SUB2));
+      // /* Get MW SubGhz_Phy info */
+      // APP_LOG(TS_OFF, VLEVEL_M, "MW_RADIO_VERSION:    V%X.%X.%X\r\n",
+      //         (uint8_t)(SUBGHZ_PHY_VERSION_MAIN),
+      //         (uint8_t)(SUBGHZ_PHY_VERSION_SUB1),
+      //         (uint8_t)(SUBGHZ_PHY_VERSION_SUB2));
 
-      LOG_INFO("[%02d]%02d/%02d/%02d %02d:%02d:%02d\r\n",RTC_Date.WeekDay, 2000 + RTC_Date.Year, RTC_Date.Month, RTC_Date.Date,
-                    RTC_Time.Hours, RTC_Time.Minutes, RTC_Time.Seconds);
       
-    }
+      // HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BCD);
+      // HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BCD);
+      // LOG_INFO("[%02d]%02d/%02d/%02d %02d:%02d:%02d\r\n",RTC_Date.WeekDay, 2000 + RTC_Date.Year, RTC_Date.Month, RTC_Date.Date,
+      //               RTC_Time.Hours, RTC_Time.Minutes, RTC_Time.Seconds);
+    // }
     
-    UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+    // UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+    MX_SubGHz_Phy_Process();
   }
-
+#endif
   /* USER CODE END 2 */
 
   /* Infinite loop */

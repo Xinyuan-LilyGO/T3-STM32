@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -24,7 +24,7 @@
 #include "sys_app.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "stm32_seq.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -79,9 +79,10 @@ void MX_SubGHz_Phy_Process(void)
   /* USER CODE BEGIN MX_SubGHz_Phy_Process_1 */
 
   /* USER CODE END MX_SubGHz_Phy_Process_1 */
-  /* USER CODE BEGIN MX_SubGHz_Phy_Process_OS */
+  UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
+  /* USER CODE BEGIN MX_SubGHz_Phy_Process_2 */
 
-  /* USER CODE END MX_SubGHz_Phy_Process_OS */
+  /* USER CODE END MX_SubGHz_Phy_Process_2 */
 }
 
 /* USER CODE BEGIN EF */

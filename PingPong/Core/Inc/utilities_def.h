@@ -76,12 +76,24 @@ typedef enum
 {
   CFG_SEQ_Task_Default,
   /* USER CODE BEGIN CFG_SEQ_Task_Id_t */
-  CFG_MY_TASK_ID_1,
+  CFG_TASK_ID_BOOT_BTN,
+  CFG_SEQ_Task_Vcom,
   /* USER CODE END CFG_SEQ_Task_Id_t */
   CFG_SEQ_Task_NBR
 } CFG_SEQ_Task_Id_t;
 
 /* USER CODE BEGIN ET */
+/**
+  * This is a bit mapping over 32bits listing all events id supported in the application
+  */
+typedef enum
+{
+  CFG_SEQ_Evt_RadioOnTstRF,
+  /* USER CODE BEGIN CFG_SEQ_IdleEvt_Id_t */
+
+  /* USER CODE END CFG_SEQ_IdleEvt_Id_t */
+  CFG_SEQ_Evt_NBR
+} CFG_SEQ_IdleEvt_Id_t;
 
 /* USER CODE END ET */
 

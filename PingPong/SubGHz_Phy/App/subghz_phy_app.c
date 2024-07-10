@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  * Copyright (c) 2021 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -22,7 +22,13 @@
 #include "platform.h"
 #include "sys_app.h"
 #include "subghz_phy_app.h"
-#include "radio.h"
+#include "stm32_timer.h"
+#include "stm32_seq.h"
+#include "utilities_def.h"
+#include "app_version.h"
+#include "subghz_phy_version.h"
+#include "subg_command.h"
+#include "subg_at.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -49,42 +55,15 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-/* Radio events function pointer */
-static RadioEvents_t RadioEvents;
-
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-/*!
- * @brief Function to be executed on Radio Tx Done event
- */
-static void OnTxDone(void);
-
 /**
-  * @brief Function to be executed on Radio Rx Done event
-  * @param  payload ptr of buffer received
-  * @param  size buffer size
-  * @param  rssi
-  * @param  LoraSnr_FskCfo
+  * @brief  call back when LoRaWan Stack needs update
   */
-static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo);
-
-/**
-  * @brief Function executed on Radio Tx Timeout event
-  */
-static void OnTxTimeout(void);
-
-/**
-  * @brief Function executed on Radio Rx Timeout event
-  */
-static void OnRxTimeout(void);
-
-/**
-  * @brief Function executed on Radio Rx Error event
-  */
-static void OnRxError(void);
+static void CmdProcessNotify(void);
 
 /* USER CODE BEGIN PFP */
 
@@ -93,20 +72,30 @@ static void OnRxError(void);
 /* Exported functions ---------------------------------------------------------*/
 void SubghzApp_Init(void)
 {
+  CMD_Init(CmdProcessNotify);
+
   /* USER CODE BEGIN SubghzApp_Init_1 */
+
+  /* Get SubGHY_Phy APP version*/
+  APP_LOG(TS_OFF, VLEVEL_M, "APPLICATION_VERSION: V%X.%X.%X\r\n",
+          (uint8_t)(APP_VERSION_MAIN),
+          (uint8_t)(APP_VERSION_SUB1),
+          (uint8_t)(APP_VERSION_SUB2));
+
+  /* Get MW SubGhz_Phy info */
+  APP_LOG(TS_OFF, VLEVEL_M, "MW_RADIO_VERSION:    V%X.%X.%X\r\n",
+          (uint8_t)(SUBGHZ_PHY_VERSION_MAIN),
+          (uint8_t)(SUBGHZ_PHY_VERSION_SUB1),
+          (uint8_t)(SUBGHZ_PHY_VERSION_SUB2));
 
   /* USER CODE END SubghzApp_Init_1 */
 
-  /* Radio initialization */
-  RadioEvents.TxDone = OnTxDone;
-  RadioEvents.RxDone = OnRxDone;
-  RadioEvents.TxTimeout = OnTxTimeout;
-  RadioEvents.RxTimeout = OnRxTimeout;
-  RadioEvents.RxError = OnRxError;
-
-  Radio.Init(&RadioEvents);
+  /* Register Virtual-Com task then radio goes in Sleep/Stop mode waiting an AT cmd */
+  UTIL_SEQ_RegTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU, CMD_Process);
 
   /* USER CODE BEGIN SubghzApp_Init_2 */
+  APP_PPRINTF("ATtention command interface (only for TST_RF)\r\n");
+  APP_PPRINTF("AT? to list all available functions\r\n");
 
   /* USER CODE END SubghzApp_Init_2 */
 }
@@ -116,36 +105,15 @@ void SubghzApp_Init(void)
 /* USER CODE END EF */
 
 /* Private functions ---------------------------------------------------------*/
-static void OnTxDone(void)
+static void CmdProcessNotify(void)
 {
-  /* USER CODE BEGIN OnTxDone */
-  /* USER CODE END OnTxDone */
-}
+  /* USER CODE BEGIN CmdProcessNotify_1 */
 
-static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo)
-{
-  /* USER CODE BEGIN OnRxDone */
-  /* USER CODE END OnRxDone */
-}
+  /* USER CODE END CmdProcessNotify_1 */
+  UTIL_SEQ_SetTask(1 << CFG_SEQ_Task_Vcom, CFG_SEQ_Prio_0);
+  /* USER CODE BEGIN CmdProcessNotify_2 */
 
-static void OnTxTimeout(void)
-{
-  /* USER CODE BEGIN OnTxTimeout */
-  /* USER CODE END OnTxTimeout */
+  /* USER CODE END CmdProcessNotify_2 */
 }
-
-static void OnRxTimeout(void)
-{
-  /* USER CODE BEGIN OnRxTimeout */
-  /* USER CODE END OnRxTimeout */
-}
-
-static void OnRxError(void)
-{
-  /* USER CODE BEGIN OnRxError */
-  /* USER CODE END OnRxError */
-}
-
 /* USER CODE BEGIN PrFD */
-
 /* USER CODE END PrFD */
