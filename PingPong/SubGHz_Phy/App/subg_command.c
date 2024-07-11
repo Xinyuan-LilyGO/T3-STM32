@@ -26,7 +26,6 @@
 
 /* USER CODE BEGIN Includes */
 #include "lib_log.h"
-#include "stm32_seq.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -329,7 +328,7 @@ void CMD_Init(void (*CmdProcessNotify)(void))
 void CMD_Process(void)
 {
   /* USER CODE BEGIN CMD_Process_1 */
-  LOG_INFO("(%d)CMD_Process: %d\n", __LINE__, charCount);
+
   /* USER CODE END CMD_Process_1 */
   /* Process all commands */
   if (circBuffOverflow == 1)
@@ -342,11 +341,10 @@ void CMD_Process(void)
     circBuffOverflow = 0;
     UTILS_EXIT_CRITICAL_SECTION();
     i = 0;
-
     LOG_INFO("CMD_Process circBuffOverflow: %d\n", __LINE__);
   }
 
-  // while (charCount != 0)
+  while (charCount != 0)
   {
 #if 0 /* echo On    */
     AT_PPRINTF("%c", circBuffer[ridx]);
@@ -382,7 +380,6 @@ void CMD_Process(void)
         UTILS_ENTER_CRITICAL_SECTION();
         CMD_ProcessBackSpace(command);
         UTILS_EXIT_CRITICAL_SECTION();
-
         LOG_INFO("(%d)[%s]: cmd=%s\n", __LINE__, __FILE__, command);
         parse_cmd(command);
         i = 0;
@@ -395,7 +392,6 @@ void CMD_Process(void)
     }
     else
     {
-      LOG_INFO("(%d)char:%c\n", __LINE__,  circBuffer[ridx]);
       command[i++] = circBuffer[ridx++];
       if (ridx == CIRC_BUFF_SIZE)
       {
@@ -504,8 +500,6 @@ static void parse_cmd(const char *cmd)
   const struct ATCommand_s *Current_ATCommand;
   int32_t i;
 
-  LOG_INFO("(%d)%s: cmd=%s\n", __LINE__, __FILE__, cmd);
-
   if ((cmd[0] != 'A') || (cmd[1] != 'T'))
   {
     status = AT_ERROR;
@@ -544,11 +538,9 @@ static void parse_cmd(const char *cmd)
       if (strncmp(cmd, ATCommand[i].string, ATCommand[i].size_string) == 0)
       {
         Current_ATCommand = &(ATCommand[i]);
-
-        LOG_TRACE("(%d) AT cmd:%s\n", __LINE__, cmd);
-        LOG_TRACE("(%d) AT str:%s\n", __LINE__, Current_ATCommand->string);
         /* point to the string after the command to parse it */
         cmd += Current_ATCommand->size_string;
+
         /* parse after the command */
         switch (cmd[0])
         {

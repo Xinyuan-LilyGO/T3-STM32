@@ -67,8 +67,12 @@ void Error_Handler(void);
 #define BOOT_Pin GPIO_PIN_3
 #define BOOT_GPIO_Port GPIOH
 #define BOOT_EXTI_IRQn EXTI3_IRQn
+#define LORA_CTRL_Pin GPIO_PIN_2
+#define LORA_CTRL_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define LORA_TX     HAL_GPIO_WritePin(LORA_CTRL_GPIO_Port, LORA_CTRL_Pin, GPIO_PIN_SET)
+#define LORA_RX     HAL_GPIO_WritePin(LORA_CTRL_GPIO_Port, LORA_CTRL_Pin, GPIO_PIN_RESET)
 #define LED1_ON     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
 #define LED1_OFF    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET)
 // #define LED1_TRI    HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin)

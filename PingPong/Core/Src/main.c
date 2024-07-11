@@ -194,6 +194,7 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
+  LORA_TX;
   MX_SubGHz_Phy_Init();
   /* USER CODE BEGIN 2 */
 #if 0
@@ -276,15 +277,15 @@ int main(void)
       LED2_TRI;
     }
 
-    if(HAL_GetTick() - RTC_tick > 1000) {
-      RTC_tick = HAL_GetTick();
-      HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BCD);
-      HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BCD);
-      /* Display date Format : yy/mm/dd */
-      LOG_INFO("[%02d]%02d/%02d/%02d %02d:%02d:%02d\r\n",RTC_Date.WeekDay, 2000 + RTC_Date.Year, RTC_Date.Month, RTC_Date.Date,
-                    RTC_Time.Hours, RTC_Time.Minutes, RTC_Time.Seconds);
-      LED1_TRI;
-    }
+    // if(HAL_GetTick() - RTC_tick > 1000) {
+    //   RTC_tick = HAL_GetTick();
+    //   HAL_RTC_GetTime(&hrtc, &RTC_Time, RTC_FORMAT_BCD);
+    //   HAL_RTC_GetDate(&hrtc, &RTC_Date, RTC_FORMAT_BCD);
+    //   /* Display date Format : yy/mm/dd */
+    //   LOG_INFO("[%02d]%02d/%02d/%02d %02d:%02d:%02d\r\n",RTC_Date.WeekDay, 2000 + RTC_Date.Year, RTC_Date.Month, RTC_Date.Date,
+    //                 RTC_Time.Hours, RTC_Time.Minutes, RTC_Time.Seconds);
+    //   LED1_TRI;
+    // }
     /* USER CODE END WHILE */
     MX_SubGHz_Phy_Process();
 
