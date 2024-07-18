@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -26,7 +26,7 @@
 #include "app_version.h"
 #include "subghz_phy_version.h"
 #include "test_rf.h"
-#include "stm32_seq.h"
+#include "cmsis_os.h"
 #include "utilities_def.h"
 #include "radio.h"
 #include "stm32_timer.h"

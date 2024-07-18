@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -88,6 +88,11 @@ typedef struct
 /* USER CODE END EM */
 
 /* Exported functions ------------------------------------------------------- */
+/**
+  * @brief Create semaphore used by FreeRTOS
+  */
+void  TST_Semaphore_Init(void);
+
 /**
   * @brief RF Tone test command
   * @retval status 0 ok, -1 ko

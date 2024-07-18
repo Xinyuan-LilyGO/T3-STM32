@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -23,18 +23,33 @@
 #include "sys_app.h"
 #include "subghz_phy_app.h"
 #include "stm32_timer.h"
-#include "stm32_seq.h"
 #include "utilities_def.h"
 #include "app_version.h"
 #include "subghz_phy_version.h"
 #include "subg_command.h"
 #include "subg_at.h"
+#include "cmsis_os.h"
+#include "test_rf.h"
 
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
+osThreadId_t Thd_VcomProcessId;
+
+const osThreadAttr_t Thd_VcomProcess_attr =
+{
+  .name = CFG_VCOM_PROCESS_NAME,
+  .attr_bits = CFG_VCOM_PROCESS_ATTR_BITS,
+  .cb_mem = CFG_VCOM_PROCESS_CB_MEM,
+  .cb_size = CFG_VCOM_PROCESS_CB_SIZE,
+  .stack_mem = CFG_VCOM_PROCESS_STACK_MEM,
+  .priority = CFG_VCOM_PROCESS_PRIORITY,
+  .stack_size = CFG_VCOM_PROCESS_STACK_SIZE
+};
+static void Thd_VcomProcess(void *argument);
+
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -76,26 +91,17 @@ void SubghzApp_Init(void)
 
   /* USER CODE BEGIN SubghzApp_Init_1 */
 
-  /* Get SubGHY_Phy APP version*/
-  APP_LOG(TS_OFF, VLEVEL_M, "APPLICATION_VERSION: V%X.%X.%X\r\n",
-          (uint8_t)(APP_VERSION_MAIN),
-          (uint8_t)(APP_VERSION_SUB1),
-          (uint8_t)(APP_VERSION_SUB2));
-
-  /* Get MW SubGhz_Phy info */
-  APP_LOG(TS_OFF, VLEVEL_M, "MW_RADIO_VERSION:    V%X.%X.%X\r\n",
-          (uint8_t)(SUBGHZ_PHY_VERSION_MAIN),
-          (uint8_t)(SUBGHZ_PHY_VERSION_SUB1),
-          (uint8_t)(SUBGHZ_PHY_VERSION_SUB2));
-
   /* USER CODE END SubghzApp_Init_1 */
 
-  /* Register Virtual-Com task then radio goes in Sleep/Stop mode waiting an AT cmd */
-  UTIL_SEQ_RegTask((1 << CFG_SEQ_Task_Vcom), UTIL_SEQ_RFU, CMD_Process);
+  Thd_VcomProcessId = osThreadNew(Thd_VcomProcess, NULL, &Thd_VcomProcess_attr);
+  if (Thd_VcomProcessId == NULL)
+  {
+    Error_Handler();
+  }
+  /* Create the semaphore for RfTest.  */
+  TST_Semaphore_Init();
 
   /* USER CODE BEGIN SubghzApp_Init_2 */
-  APP_PPRINTF("ATtention command interface (only for TST_RF)\r\n");
-  APP_PPRINTF("AT? to list all available functions\r\n");
 
   /* USER CODE END SubghzApp_Init_2 */
 }
@@ -110,10 +116,27 @@ static void CmdProcessNotify(void)
   /* USER CODE BEGIN CmdProcessNotify_1 */
 
   /* USER CODE END CmdProcessNotify_1 */
-  UTIL_SEQ_SetTask(1 << CFG_SEQ_Task_Vcom, CFG_SEQ_Prio_0);
+  osThreadFlagsSet(Thd_VcomProcessId, 1);
   /* USER CODE BEGIN CmdProcessNotify_2 */
 
   /* USER CODE END CmdProcessNotify_2 */
 }
+
+static void Thd_VcomProcess(void *argument)
+{
+  /* USER CODE BEGIN Thd_VcomProcess_1 */
+
+  /* USER CODE END Thd_VcomProcess_1 */
+  UNUSED(argument);
+  for (;;)
+  {
+    osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
+    CMD_Process(); /*what you want to do*/
+  }
+  /* USER CODE BEGIN Thd_VcomProcess_2 */
+
+  /* USER CODE END Thd_VcomProcess_2 */
+}
 /* USER CODE BEGIN PrFD */
+
 /* USER CODE END PrFD */

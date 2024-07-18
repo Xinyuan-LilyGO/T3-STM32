@@ -33,6 +33,7 @@ extern "C" {
 #include "mw_log_conf.h"     /* mw trace conf */
 #include "radio_board_if.h"  /* low layer api (bsp) */
 #include "utilities_def.h"  /* low layer api (bsp) */
+#include "sys_debug.h"
 /* USER CODE BEGIN include */
 
 /* USER CODE END include */

@@ -45,43 +45,12 @@ typedef enum
   /* USER CODE BEGIN CFG_LPM_Id_t_0 */
 
   /* USER CODE END CFG_LPM_Id_t_0 */
-  CFG_LPM_DUMMY_Id,
+  CFG_LPM_APPLI_Id,
+  CFG_LPM_UART_TX_Id,
   /* USER CODE BEGIN CFG_LPM_Id_t */
 
   /* USER CODE END CFG_LPM_Id_t */
 } CFG_LPM_Id_t;
-
-/*---------------------------------------------------------------------------*/
-/*                             sequencer definitions                         */
-/*---------------------------------------------------------------------------*/
-
-/**
-  * This is the list of priority required by the application
-  * Each Id shall be in the range 0..31
-  */
-typedef enum
-{
-  CFG_SEQ_Prio_0,
-  /* USER CODE BEGIN CFG_SEQ_Prio_Id_t */
-  
-  /* USER CODE END CFG_SEQ_Prio_Id_t */
-  CFG_SEQ_Prio_NBR,
-} CFG_SEQ_Prio_Id_t;
-
-/**
-  * This is the list of task id required by the application
-  * Each Id shall be in the range 0..31
-  */
-typedef enum
-{
-  CFG_SEQ_Task_Default,
-  /* USER CODE BEGIN CFG_SEQ_Task_Id_t */
-  CFG_TASK_ID_BOOT_BTN,
-  CFG_SEQ_Task_Vcom,
-  /* USER CODE END CFG_SEQ_Task_Id_t */
-  CFG_SEQ_Task_NBR
-} CFG_SEQ_Task_Id_t;
-
 /* USER CODE BEGIN ET */
 /**
   * This is a bit mapping over 32bits listing all events id supported in the application

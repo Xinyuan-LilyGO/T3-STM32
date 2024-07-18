@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -25,7 +25,7 @@
 #include "subg_command.h"
 
 /* USER CODE BEGIN Includes */
-#include "lib_log.h"
+
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -341,7 +341,6 @@ void CMD_Process(void)
     circBuffOverflow = 0;
     UTILS_EXIT_CRITICAL_SECTION();
     i = 0;
-    LOG_INFO("CMD_Process circBuffOverflow: %d\n", __LINE__);
   }
 
   while (charCount != 0)
@@ -380,7 +379,6 @@ void CMD_Process(void)
         UTILS_ENTER_CRITICAL_SECTION();
         CMD_ProcessBackSpace(command);
         UTILS_EXIT_CRITICAL_SECTION();
-        LOG_INFO("(%d)[%s]: cmd=%s\n", __LINE__, __FILE__, command);
         parse_cmd(command);
         i = 0;
       }
@@ -471,7 +469,6 @@ static void CMD_GetChar(uint8_t *rxChar, uint16_t size, uint8_t error)
   {
     circBuffOverflow = 1;
     charCount--;
-    LOG_INFO("%d:circBuffOverflow: %d\n", __LINE__, circBuffOverflow);
   }
   else
   {
@@ -487,7 +484,7 @@ static void CMD_GetChar(uint8_t *rxChar, uint16_t size, uint8_t error)
     NotifyCb();
   }
   /* USER CODE BEGIN CMD_GetChar_2 */
-  LOG_INFO("(%d)CMD_GetChar: cnt=%d, widx=%d, c=%c\n", __LINE__, charCount, widx, *rxChar);
+
   /* USER CODE END CMD_GetChar_2 */
 }
 
@@ -531,7 +528,6 @@ static void parse_cmd(const char *cmd)
   {
     /* point to the start of the command, excluding AT */
     status = AT_ERROR;
-    LOG_TRACE("(%d) AT cmd:%s\n", __LINE__, cmd);
     cmd += 2;
     for (i = 0; i < (sizeof(ATCommand) / sizeof(struct ATCommand_s)); i++)
     {

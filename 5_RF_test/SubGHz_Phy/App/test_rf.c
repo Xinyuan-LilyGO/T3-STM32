@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2021 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -23,7 +23,7 @@
 #include "sys_app.h"
 #include "test_rf.h"
 #include "radio.h"
-#include "stm32_seq.h"
+#include "cmsis_os.h"
 #include "utilities_def.h"
 
 /* USER CODE BEGIN Includes */
@@ -97,6 +97,8 @@ static RadioEvents_t RadioEvents;
  */
 static uint8_t payload[256] = {0};
 
+static osSemaphoreId_t Sem_RadioOnTstRF;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -137,6 +139,18 @@ void OnRxError(void);
 /* USER CODE END PFP */
 
 /* Exported functions --------------------------------------------------------*/
+void  TST_Semaphore_Init(void)
+{
+  /* USER CODE BEGIN TST_Semaphore_Init_1 */
+
+  /* USER CODE END TST_Semaphore_Init_1 */
+  Sem_RadioOnTstRF = osSemaphoreNew(1, 0, NULL);   /*< Create the semaphore and make it busy at initialization */
+
+  /* USER CODE BEGIN TST_Semaphore_Init_2 */
+
+  /* USER CODE END TST_Semaphore_Init_2 */
+}
+
 int32_t TST_TxTone(void)
 {
   /* USER CODE BEGIN TST_TxTone_1 */
@@ -352,7 +366,7 @@ int32_t TST_TX_Start(int32_t nb_packet)
       /* Send payload once*/
       Radio.Send(payload, testParam.payloadLen);
       /* Wait Tx done/timeout */
-      UTIL_SEQ_WaitEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+      osSemaphoreAcquire(Sem_RadioOnTstRF, osWaitForever);
       Radio.Sleep();
 
       if (RadioTxDone_flag == 1)
@@ -468,7 +482,7 @@ int32_t TST_RX_Start(int32_t nb_packet)
       }
 
       /* Wait Rx done/timeout */
-      UTIL_SEQ_WaitEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+      osSemaphoreAcquire(Sem_RadioOnTstRF, osWaitForever);
       Radio.Sleep();
 
       if (RadioRxDone_flag == 1)
@@ -539,7 +553,7 @@ void OnTxDone(void)
   /* USER CODE END OnTxDone_1 */
   /* Set TxDone flag */
   RadioTxDone_flag = 1;
-  UTIL_SEQ_SetEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+  osSemaphoreRelease(Sem_RadioOnTstRF);
   /* USER CODE BEGIN OnTxDone_2 */
 
   /* USER CODE END OnTxDone_2 */
@@ -555,7 +569,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskC
 
   /* Set Rxdone flag */
   RadioRxDone_flag = 1;
-  UTIL_SEQ_SetEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+  osSemaphoreRelease(Sem_RadioOnTstRF);
   /* USER CODE BEGIN OnRxDone_2 */
 
   /* USER CODE END OnRxDone_2 */
@@ -568,7 +582,7 @@ void OnTxTimeout(void)
   /* USER CODE END OnTxTimeout_1 */
   /* Set timeout flag */
   RadioTxTimeout_flag = 1;
-  UTIL_SEQ_SetEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+  osSemaphoreRelease(Sem_RadioOnTstRF);
   /* USER CODE BEGIN OnTxTimeout_2 */
 
   /* USER CODE END OnTxTimeout_2 */
@@ -581,7 +595,7 @@ void OnRxTimeout(void)
   /* USER CODE END OnRxTimeout_1 */
   /* Set timeout flag */
   RadioRxTimeout_flag = 1;
-  UTIL_SEQ_SetEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+  osSemaphoreRelease(Sem_RadioOnTstRF);
   /* USER CODE BEGIN OnRxTimeout_2 */
 
   /* USER CODE END OnRxTimeout_2 */
@@ -594,7 +608,7 @@ void OnRxError(void)
   /* USER CODE END OnRxError_1 */
   /* Set error flag */
   RadioError_flag = 1;
-  UTIL_SEQ_SetEvt(1 << CFG_SEQ_Evt_RadioOnTstRF);
+  osSemaphoreRelease(Sem_RadioOnTstRF);
   /* USER CODE BEGIN OnRxError_2 */
 
   /* USER CODE END OnRxError_2 */

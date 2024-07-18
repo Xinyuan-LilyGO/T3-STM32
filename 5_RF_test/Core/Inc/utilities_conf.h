@@ -34,8 +34,6 @@ extern "C" {
 /* definition and callback for tiny_vsnprintf */
 #include "stm32_tiny_vsnprintf.h"
 
-/* enum number of task and priority*/
-#include "utilities_def.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -109,18 +107,6 @@ extern "C" {
 /******************************************************************************
   * sequencer
   ******************************************************************************/
-
-/**
-  * @brief default number of tasks configured in sequencer
-  */
-#define UTIL_SEQ_CONF_TASK_NBR    CFG_SEQ_Task_NBR
-
-/**
-  * @brief default value of priority task
-  */
-
-#define UTIL_SEQ_CONF_PRIO_NBR    CFG_SEQ_Prio_NBR
-
 /**
   * @brief macro used to initialize the critical section
   */
@@ -155,9 +141,9 @@ extern "C" {
 #define UTIL_ADV_TRACE_INIT_CRITICAL_SECTION( )    UTILS_INIT_CRITICAL_SECTION()         /*!< init the critical section in trace feature */
 #define UTIL_ADV_TRACE_ENTER_CRITICAL_SECTION( )   UTILS_ENTER_CRITICAL_SECTION()        /*!< enter the critical section in trace feature */
 #define UTIL_ADV_TRACE_EXIT_CRITICAL_SECTION( )    UTILS_EXIT_CRITICAL_SECTION()         /*!< exit the critical section in trace feature */
-#define UTIL_ADV_TRACE_TMP_BUF_SIZE                (256U)                                /*!< default trace buffer size */
+#define UTIL_ADV_TRACE_TMP_BUF_SIZE                (1024U)                               /*!< default trace buffer size */
 #define UTIL_ADV_TRACE_TMP_MAX_TIMESTMAP_SIZE      (15U)                                 /*!< default trace timestamp size */
-#define UTIL_ADV_TRACE_FIFO_SIZE                   (512U)                                /*!< default trace fifo size */
+#define UTIL_ADV_TRACE_FIFO_SIZE                   (2048U)                               /*!< default trace fifo size */
 #define UTIL_ADV_TRACE_MEMSET8( dest, value, size) UTIL_MEM_set_8((dest),(value),(size)) /*!< memset utilities interface to trace feature */
 #define UTIL_ADV_TRACE_VSNPRINTF(...)              tiny_vsnprintf_like(__VA_ARGS__)      /*!< vsnprintf utilities interface to trace feature */
 

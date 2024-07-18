@@ -3,5 +3,9 @@ hardware
 Send_Test
 test_send
 .vscode
-3_sdcard/
+
 RF_test/
+3_sdcard/User/bsp_spi_sdcard.h
+3_sdcard/User/bsp_spi_sdcard.c
+3_sdcard/User/sdcard_temp.c
+3_sdcard/User/sdcard_temp.h

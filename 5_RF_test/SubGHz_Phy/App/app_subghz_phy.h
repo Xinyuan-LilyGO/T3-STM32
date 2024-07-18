@@ -57,11 +57,6 @@ extern "C" {
   */
 void MX_SubGHz_Phy_Init(void);
 
-/**
-  * @brief  SubGHz Radio Application Process
-  */
-void MX_SubGHz_Phy_Process(void);
-
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
