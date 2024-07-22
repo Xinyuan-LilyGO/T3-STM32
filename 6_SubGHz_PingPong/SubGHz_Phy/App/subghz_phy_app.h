@@ -70,6 +70,17 @@ extern "C" {
 
 #define PAYLOAD_LEN                                 64
 
+/* USER CODE BEGIN FREERTOS_EC */
+#define CFG_TX_PROCESS_NAME                      "LORA_TX"
+#define CFG_TX_PROCESS_ATTR_BITS                 (0)
+#define CFG_TX_PROCESS_CB_MEM                    (0)
+#define CFG_TX_PROCESS_CB_SIZE                   (0)
+#define CFG_TX_PROCESS_STACK_MEM                 (0)
+#define CFG_TX_PROCESS_PRIORITY                  osPriorityNone
+#define CFG_TX_PROCESS_STACK_SIZE                1024
+
+/* USER CODE END FREERTOS_EC */
+
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */

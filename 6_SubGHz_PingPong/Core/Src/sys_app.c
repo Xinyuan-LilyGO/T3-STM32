@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include "platform.h"
 #include "sys_app.h"
-#include "stm32_seq.h"
 #include "stm32_systime.h"
 #include "stm32_lpm.h"
 #include "timer_if.h"
@@ -117,20 +116,6 @@ void SystemApp_Init(void)
   /* USER CODE BEGIN SystemApp_Init_2 */
 
   /* USER CODE END SystemApp_Init_2 */
-}
-
-/**
-  * @brief redefines __weak function in stm32_seq.c such to enter low power
-  */
-void UTIL_SEQ_Idle(void)
-{
-  /* USER CODE BEGIN UTIL_SEQ_Idle_1 */
-
-  /* USER CODE END UTIL_SEQ_Idle_1 */
-  UTIL_LPM_EnterLowPower();
-  /* USER CODE BEGIN UTIL_SEQ_Idle_2 */
-
-  /* USER CODE END UTIL_SEQ_Idle_2 */
 }
 
 /* USER CODE BEGIN EF */

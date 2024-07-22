@@ -22,7 +22,7 @@
 #include "app_subghz_phy.h"
 #include "subghz_phy_app.h"
 #include "sys_app.h"
-#include "stm32_seq.h"
+#include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -73,17 +73,6 @@ void MX_SubGHz_Phy_Init(void)
   /* USER CODE BEGIN MX_SubGHz_Phy_Init_2 */
 
   /* USER CODE END MX_SubGHz_Phy_Init_2 */
-}
-
-void MX_SubGHz_Phy_Process(void)
-{
-  /* USER CODE BEGIN MX_SubGHz_Phy_Process_1 */
-
-  /* USER CODE END MX_SubGHz_Phy_Process_1 */
-  UTIL_SEQ_Run(UTIL_SEQ_DEFAULT);
-  /* USER CODE BEGIN MX_SubGHz_Phy_Process_2 */
-
-  /* USER CODE END MX_SubGHz_Phy_Process_2 */
 }
 
 /* USER CODE BEGIN EF */

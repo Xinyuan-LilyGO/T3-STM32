@@ -1,5 +1,6 @@
 
 @REM 删除文件中多余的文件
+@REM Delete redundant files generated in the project
 
 @echo off
 setlocal enabledelayedexpansion
@@ -8,6 +9,10 @@ REM 定义列表
 set "fileList="
 call :appendFileList 1_led
 call :appendFileList 2_jlink_rtt_print
+call :appendFileList 3_sdcard
+call :appendFileList 4_oled
+call :appendFileList 5_RF_test
+call :appendFileList 6_SubGHz_PingPong
 call :appendFileList PingPong
 
 REM 遍历列表并输出文件名
