@@ -11,8 +11,11 @@
 #include "cmsis_os.h"
 #include "lib_log.h"
 #include "oled.h"
+#include "sdcard.h"
 
 /* Private define ------------------------------------------------------------*/
+
+#define TX_OUTPUT_POWER 22
 
 #define TEXT_INFO "#T3_STM32 - "
 
@@ -39,7 +42,15 @@ const osThreadAttr_t Thd_LoraTx_attr = {
     .priority = CFG_TX_PROCESS_PRIORITY,
     .stack_size = CFG_TX_PROCESS_STACK_SIZE};
 
-static void Lora_TxPocess(void *argument);
+osThreadId_t Thd_OledId;
+const osThreadAttr_t Thd_Oled_attr = {
+    .name = CFG_TX_PROCESS_NAME,
+    .attr_bits = CFG_TX_PROCESS_ATTR_BITS,
+    .cb_mem = CFG_TX_PROCESS_CB_MEM,
+    .cb_size = CFG_TX_PROCESS_CB_SIZE,
+    .stack_mem = CFG_TX_PROCESS_STACK_MEM,
+    .priority = CFG_TX_PROCESS_PRIORITY,
+    .stack_size = CFG_TX_PROCESS_STACK_SIZE + 1};
 
 /* App Rx Buffer*/
 static uint8_t BufferRx[MAX_APP_BUFFER_SIZE];
@@ -48,22 +59,17 @@ static uint8_t BufferTx[MAX_APP_BUFFER_SIZE];
 
 static uint32_t LED_tick = 0;
 
-/* FreeRTOS define ------------------------------------------------------------*/
+static bool boot_btn = false;
 
-static void Lora_TxPocess(void *argument)
+/* Overwrite functions ---------------------------------------------------------*/
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    UNUSED(argument);
-    static int cnt = 0;
-
-    for (;;)
+    if (GPIO_Pin == BOOT_BTN_Pin)
     {
-        snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
-        LOG_TRACE("%s\n", BufferTx);
-        Radio.Send(BufferTx, PAYLOAD_LEN);
-        LED2_TRI;
-        osDelay(3000);
+        // LOG_TRACE("BOOT btn is Pressed\n");
     }
 }
+
 /* Static functions ---------------------------------------------------------*/
 static void Lora_init(void)
 {
@@ -109,32 +115,85 @@ static void Lora_init(void)
 
 #else
 #error "Please define a modulation in the subghz_phy_app.h file."
-#endif 
+#endif
     /*fills tx buffer*/
     memset(BufferTx, 0x0, MAX_APP_BUFFER_SIZE);
 
     /*starts reception*/
 }
 
+bool Boot_GetBtnStatus(void)
+{
+    bool ret = false;
+    if ((boot_btn == true) && (HAL_GPIO_ReadPin(BOOT_BTN_GPIO_Port, BOOT_BTN_Pin) == GPIO_PIN_RESET))
+    {
+        ret = true;
+        boot_btn = false;
+    }
+    return ret;
+}
+
+/* FreeRTOS define ------------------------------------------------------------*/
+static void Lora_TxPocess(void *argument)
+{
+    UNUSED(argument);
+    static int cnt = 0;
+    char buf[16];
+
+    LORA_TX; // Select Lora as the sending mode
+    // LORA_RX;
+
+    Lora_init();
+
+    for (;;)
+    {
+        snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
+        LOG_TRACE("%s\n", BufferTx);
+        Radio.Send(BufferTx, PAYLOAD_LEN);
+        LED2_TRI;
+
+        snprintf(buf, 16, "TX:      #%d", cnt);
+        OLED_ShowString(0, 32, buf, 16, 1);
+        osDelay(1000);
+    }
+}
+
+static void Oled_ShowPocess(void *arg)
+{
+    int chk_sd = 0;
+    char buf[16];
+ 
+    sdcard_init();
+    
+    OLED_Init();
+    OLED_ShowString(40, 0, "LORA-TX ", 16, 1);
+    OLED_ShowString(0, 16, "Freq:    868MHz", 16, 1);
+    OLED_ShowString(0, 32, "TX:      #", 16, 1);
+    
+    snprintf(buf, 16, "SD: %s", sdcard_get_type_str());
+    OLED_ShowString(0, 48, buf, 16, 1);
+
+    for (;;)
+    {
+        OLED_Refresh();
+        osDelay(50);
+    }
+}
+
 /* Exported functions ---------------------------------------------------------*/
 void user_setup(void)
 {
-    LORA_TX; // Select Lora as the sending mode
-    Lora_init();
-
     Thd_LoraTxId = osThreadNew(Lora_TxPocess, NULL, &Thd_LoraTx_attr);
     if (Thd_LoraTxId == NULL)
     {
         Error_Handler();
     }
 
-    OLED_Init();
-
-    OLED_ShowString(40, 0, "LORA-TX", 16, 1);
-    OLED_ShowString(0, 16, "Freq:     868MHz", 16, 1);
-    OLED_ShowString(0, 32, "Connect: UART1", 16, 1);
-    OLED_ShowString(0, 48, "Baud:    9600", 16, 1);
-    OLED_Refresh();
+    Thd_OledId = osThreadNew(Oled_ShowPocess, NULL, &Thd_Oled_attr);
+    if (Thd_OledId == NULL)
+    {
+        Error_Handler();
+    }
 }
 
 void user_loop(void)

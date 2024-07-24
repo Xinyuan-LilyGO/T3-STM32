@@ -64,8 +64,13 @@ void Error_Handler(void);
 #define LED1_GPIO_Port GPIOA
 #define LED2_Pin GPIO_PIN_1
 #define LED2_GPIO_Port GPIOA
+#define SD_CS_Pin GPIO_PIN_4
+#define SD_CS_GPIO_Port GPIOA
 #define OLED_DC_Pin GPIO_PIN_8
 #define OLED_DC_GPIO_Port GPIOA
+#define BOOT_BTN_Pin GPIO_PIN_3
+#define BOOT_BTN_GPIO_Port GPIOH
+#define BOOT_BTN_EXTI_IRQn EXTI3_IRQn
 #define LORA_CTRL_Pin GPIO_PIN_2
 #define LORA_CTRL_GPIO_Port GPIOB
 #define OLED_CS_Pin GPIO_PIN_12
