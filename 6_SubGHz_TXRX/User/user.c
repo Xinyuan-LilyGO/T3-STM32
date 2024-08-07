@@ -12,23 +12,11 @@
 #include "lib_log.h"
 #include "oled.h"
 #include "sdcard.h"
+#include "gpio.h"
 
 /* Private define ------------------------------------------------------------*/
 
-#define TX_OUTPUT_POWER 22
-
-#define TEXT_INFO "#T3_STM32 - "
-
-/*Timeout*/
-#define RX_TIMEOUT_VALUE 3000
-#define TX_TIMEOUT_VALUE 3000
-
-/*Size of the payload to be sent*/
-/* Size must be greater of equal the PING and PONG*/
-#define MAX_APP_BUFFER_SIZE 255
-#if (PAYLOAD_LEN > MAX_APP_BUFFER_SIZE)
-#error PAYLOAD_LEN must be less or equal than MAX_APP_BUFFER_SIZE
-#endif /* (PAYLOAD_LEN > MAX_APP_BUFFER_SIZE) */
+#define TEXT_INFO "# "
 
 /* External variables ---------------------------------------------------------*/
 
@@ -53,9 +41,18 @@ const osThreadAttr_t Thd_Oled_attr = {
     .stack_size = CFG_TX_PROCESS_STACK_SIZE + 1};
 
 /* App Rx Buffer*/
-static uint8_t BufferRx[MAX_APP_BUFFER_SIZE];
+uint8_t BufferRx[MAX_APP_BUFFER_SIZE];
+/* Last  Received Buffer Size*/
+uint16_t RxBufferSize = 0;
+/* Last  Received finish flag*/
+bool RxFinishFlag = false;
+/* Last  Received packer Rssi*/
+int8_t RssiValue = 0;
+/* Last  Received packer SNR (in Lora modulation)*/
+int8_t SnrValue = 0;
+
 /* App Tx Buffer*/
-static uint8_t BufferTx[MAX_APP_BUFFER_SIZE];
+uint8_t BufferTx[MAX_APP_BUFFER_SIZE];
 
 static uint32_t LED_tick = 0;
 
@@ -134,26 +131,37 @@ bool Boot_GetBtnStatus(void)
 }
 
 /* FreeRTOS define ------------------------------------------------------------*/
-static void Lora_TxPocess(void *argument)
+static void Lora_Pocess(void *argument)
 {
     UNUSED(argument);
     static int cnt = 0;
     char buf[16];
 
-    LORA_TX; // Select Lora as the sending mode
-    // LORA_RX;
+#if STM32_LORA_MODE_TX
+    LORA_TX;
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
+#elif STM32_LORA_MODE_RX
+    LORA_RX;
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+#endif
 
     Lora_init();
 
     for (;;)
     {
-        snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
-        LOG_TRACE("%s\n", BufferTx);
-        Radio.Send(BufferTx, PAYLOAD_LEN);
+
         LED2_TRI;
 
+#if STM32_LORA_MODE_TX
+        snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
         snprintf(buf, 16, "TX:      #%d", cnt);
         OLED_ShowString(0, 32, buf, 16, 1);
+
+        LOG_TRACE("%s\n", BufferTx);
+        Radio.Send(BufferTx, PAYLOAD_LEN);
+#elif STM32_LORA_MODE_RX
+        Radio.Rx(RX_TIMEOUT_VALUE);
+#endif
         osDelay(1000);
     }
 }
@@ -162,19 +170,60 @@ static void Oled_ShowPocess(void *arg)
 {
     int chk_sd = 0;
     char buf[16];
- 
+
     sdcard_init();
-    
+
     OLED_Init();
+#if STM32_LORA_MODE_TX
+    // line 1
     OLED_ShowString(40, 0, "LORA-TX ", 16, 1);
-    OLED_ShowString(0, 16, "Freq:    868MHz", 16, 1);
+
+    // line 2
+    snprintf(buf, 16, "Freq:    %dMHz", (RF_FREQUENCY / 1000000));
+    OLED_ShowString(0, 16, buf, 16, 1);
+
+    // line 3
     OLED_ShowString(0, 32, "TX:      #", 16, 1);
-    
-    snprintf(buf, 16, "SD: %s", sdcard_get_type_str());
+
+    // line 4
+    snprintf(buf, 16, "PWR:     %ddBm", TX_OUTPUT_POWER);
     OLED_ShowString(0, 48, buf, 16, 1);
+
+#elif STM32_LORA_MODE_RX
+
+    // line 1
+    OLED_ShowString(40, 0, "LORA-RX ", 16, 1);
+
+    // line 2
+    snprintf(buf, 16, "Freq:    %dMHz", (RF_FREQUENCY / 1000000));
+    OLED_ShowString(0, 16, buf, 16, 1);
+
+    // line 3
+    snprintf(buf, 16, "RX: %s", BufferRx);
+    OLED_ShowString(0, 32, buf, 16, 1);
+
+    // line 4
+    snprintf(buf, 16, "RSSI:%ddBm", RssiValue);
+    OLED_ShowString(0, 48, buf, 16, 1);
+
+#endif
+
+    // snprintf(buf, 16, "SD: %s", sdcard_get_type_str());
+    // OLED_ShowString(0, 48, buf, 16, 1);
 
     for (;;)
     {
+#if STM32_LORA_MODE_RX
+        RxFinishFlag = false;
+        // line 3
+        snprintf(buf, 16, "RX: %s", BufferRx);
+        OLED_ShowString(0, 32, buf, 16, 1);
+
+        // line 4
+        snprintf(buf, 16, "RSSI:%ddBm", RssiValue);
+        OLED_ShowString(0, 48, buf, 16, 1);
+#endif
+
         OLED_Refresh();
         osDelay(50);
     }
@@ -183,7 +232,7 @@ static void Oled_ShowPocess(void *arg)
 /* Exported functions ---------------------------------------------------------*/
 void user_setup(void)
 {
-    Thd_LoraTxId = osThreadNew(Lora_TxPocess, NULL, &Thd_LoraTx_attr);
+    Thd_LoraTxId = osThreadNew(Lora_Pocess, NULL, &Thd_LoraTx_attr);
     if (Thd_LoraTxId == NULL)
     {
         Error_Handler();

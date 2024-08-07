@@ -12,7 +12,7 @@ call :appendFileList 2_jlink_rtt_print
 call :appendFileList 3_sdcard
 call :appendFileList 4_oled
 call :appendFileList 5_RF_test
-call :appendFileList 6_SubGHz_PingPong
+call :appendFileList 6_SubGHz_TXRX
 call :appendFileList PingPong
 
 REM 遍历列表并输出文件名

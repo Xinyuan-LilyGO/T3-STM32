@@ -26,7 +26,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "lib_log.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -63,7 +63,12 @@ static RadioEvents_t RadioEvents;
 /* USER CODE BEGIN PV */
 static States_t State = RX;
 /* Last  Received packer SNR (in Lora modulation)*/
-int8_t SnrValue = 0;
+
+extern uint8_t BufferRx[MAX_APP_BUFFER_SIZE];
+extern bool RxFinishFlag;
+extern uint16_t RxBufferSize;/* Last  Received Buffer Size*/
+extern int8_t RssiValue; /* Last  Received packer Rssi*/
+extern int8_t SnrValue; /* Last  Received packer SNR (in Lora modulation)*/
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -138,9 +143,7 @@ static void OnTxDone(void)
 static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo)
 {
   /* USER CODE BEGIN OnRxDone */
-  APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
 #if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
-  APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
   /* Record payload Signal to noise ratio in Lora*/
   SnrValue = LoraSnr_FskCfo;
 #endif /* USE_MODEM_LORA | USE_MODEM_FSK */
@@ -150,6 +153,22 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
 #endif /* USE_MODEM_LORA | USE_MODEM_FSK */
   /* Update the State of the FSM*/
   State = RX;
+
+  APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
+  APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
+  APP_LOG(TS_ON, VLEVEL_L, "rec:%s\n", payload);
+  LOG_INFO("rec:%s,rssi;%d, snr=%d\n", payload, rssi, LoraSnr_FskCfo);
+  
+  /* Clear BufferRx*/
+  memset(BufferRx, 0, MAX_APP_BUFFER_SIZE);
+  /* Record payload size*/
+  RxBufferSize = size;
+  RxFinishFlag = true;
+  RssiValue = rssi;
+  if (RxBufferSize <= MAX_APP_BUFFER_SIZE)
+  {
+    memcpy(BufferRx, payload, RxBufferSize);
+  }
   /* USER CODE END OnRxDone */
 }
 
