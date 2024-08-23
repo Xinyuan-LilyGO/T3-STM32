@@ -27,6 +27,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "lib_log.h"
+#include "user.h"
 /* USER CODE END Includes */
 
 /* External variables ---------------------------------------------------------*/
@@ -158,6 +159,8 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
   APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
   APP_LOG(TS_ON, VLEVEL_L, "rec:%s\n", payload);
   LOG_INFO("rec:%s,rssi;%d, snr=%d\n", payload, rssi, LoraSnr_FskCfo);
+
+  LED1_TRI;
   
   /* Clear BufferRx*/
   memset(BufferRx, 0, MAX_APP_BUFFER_SIZE);

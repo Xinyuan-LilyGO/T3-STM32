@@ -149,10 +149,8 @@ static void Lora_Pocess(void *argument)
 
     for (;;)
     {
-
-        LED2_TRI;
-
 #if STM32_LORA_MODE_TX
+        LED2_TRI;
         snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
         snprintf(buf, 16, "TX:      #%d", cnt);
         OLED_ShowString(0, 32, buf, 16, 1);
@@ -247,9 +245,9 @@ void user_setup(void)
 
 void user_loop(void)
 {
-    if (LED_tick++ > 100)
-    {
-        LED_tick = 0;
-        LED1_TRI;
-    }
+    // if (LED_tick++ > 100)
+    // {
+    //     LED_tick = 0;
+    //     LED1_TRI;
+    // }
 }
