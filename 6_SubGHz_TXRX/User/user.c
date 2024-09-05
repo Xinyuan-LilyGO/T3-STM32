@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-
 #include "platform.h"
 #include "sys_app.h"
 #include "subghz_phy_app.h"
@@ -13,6 +12,8 @@
 #include "oled.h"
 #include "sdcard.h"
 #include "gpio.h"
+#include "spi.h"
+#include "rtc.h"
 
 /* Private define ------------------------------------------------------------*/
 
@@ -58,12 +59,95 @@ static uint32_t LED_tick = 0;
 
 static bool boot_btn = false;
 
+static volatile bool sleep_flag = false;
+
 /* Overwrite functions ---------------------------------------------------------*/
+void SystemClock_Decrease(void)
+{
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  /** Configure the main internal regulator output voltage 
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_MSI);
+
+  /* Disable PLL to reduce power consumption since MSI is used from that point */
+  /* Change MSI frequency */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_0;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_OFF;
+  if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+
+  /* Select MSI as system clock source */
+  /* Note: Keep AHB and APB prescaler settings from previous structure initialization */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI; 
+  if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    /* Initialization Error */
+    Error_Handler();
+  }
+}
+
+void Entry_SleepMode(void)
+{
+    LED1_OFF; LED2_OFF;
+    HAL_GPIO_DeInit(GPIOA, LED1_Pin | LED2_Pin);
+
+    osThreadSuspend(Thd_LoraTxId);
+    osThreadSuspend(Thd_OledId);
+
+    Radio.Sleep();
+    
+    OLED_WR_Byte(0x8D,OLED_CMD);//电荷泵使能
+    OLED_WR_Byte(0x10,OLED_CMD);//关闭电荷泵
+    OLED_WR_Byte(0xAE, OLED_CMD); //-- Display OFF
+    // HAL_SPI_MspDeInit(&hspi1);
+    // HAL_RTC_MspDeInit(&hrtc);
+
+    HAL_SuspendTick();
+
+    HAL_PWREx_EnableFlashPowerDown(PWR_FLASHPD_LPSLEEP);
+
+    /* Reset all RCC Sleep and Stop modes register to */
+    /* improve power consumption                      */
+    RCC->AHB1SMENR  = 0x0;
+    RCC->AHB2SMENR  = 0x0;
+    RCC->AHB3SMENR  = 0x0;
+    
+    RCC->APB1SMENR1 = 0x0;
+    RCC->APB1SMENR2 = 0x0;
+    RCC->APB2SMENR  = 0x0;
+
+    __HAL_RCC_GPIOB_CLK_DISABLE();
+    __HAL_RCC_GPIOA_CLK_DISABLE();
+    __HAL_RCC_GPIOH_CLK_DISABLE();
+    __HAL_RCC_GPIOC_CLK_DISABLE();
+
+    /* De-init LED2 */
+    // BSP_LED_DeInit(LED2);
+    HAL_SPI_MspDeInit(&hspi1);
+    HAL_RTC_MspDeInit(&hrtc);
+
+    SystemClock_Decrease();
+
+    /* Enter Sleep Mode, wake up is done once User push-button (B1) is pressed */
+    HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if (GPIO_Pin == BOOT_BTN_Pin)
     {
-        // LOG_TRACE("BOOT btn is Pressed\n");
+        LOG_TRACE("BOOT btn is Pressed\n");
+        sleep_flag = true;
     }
 }
 
@@ -169,7 +253,7 @@ static void Oled_ShowPocess(void *arg)
     int chk_sd = 0;
     char buf[16];
 
-    sdcard_init();
+    int retsd = sdcard_init();
 
     OLED_Init();
 #if STM32_LORA_MODE_TX
@@ -250,4 +334,9 @@ void user_loop(void)
     //     LED_tick = 0;
     //     LED1_TRI;
     // }
+
+    if(sleep_flag)
+    {
+        Entry_SleepMode();
+    }
 }

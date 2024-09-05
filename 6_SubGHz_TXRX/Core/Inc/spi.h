@@ -41,7 +41,7 @@ extern SPI_HandleTypeDef hspi1;
 void MX_SPI1_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
+void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus
