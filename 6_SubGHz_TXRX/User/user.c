@@ -14,10 +14,35 @@
 #include "gpio.h"
 #include "spi.h"
 #include "rtc.h"
+#include "adc.h"
 
 /* Private define ------------------------------------------------------------*/
 
 #define TEXT_INFO "# "
+
+#define DIGITAL_SCALE_12BITS             ((uint32_t) 0xFFF)
+
+/* Init variable out of ADC expected conversion data range */
+#define VAR_CONVERTED_DATA_INIT_VALUE    (DIGITAL_SCALE_12BITS + 1)
+
+#define VDDA_APPLI                       ((uint32_t)3300)
+
+/**
+  * @brief  Macro to calculate the voltage (unit: mVolt)
+  *         corresponding to a ADC conversion data (unit: digital value).
+  * @note   ADC measurement data must correspond to a resolution of 12bits
+  *         (full scale digital value 4095). If not the case, the data must be
+  *         preliminarily rescaled to an equivalent resolution of 12 bits.
+  * @note   Analog reference voltage (Vref+) must be known from
+  *         user board environment.
+  * @param  __VREFANALOG_VOLTAGE__ Analog reference voltage (unit: mV)
+  * @param  __ADC_DATA__ ADC conversion data (resolution 12 bits)
+  *                       (unit: digital value).
+  * @retval ADC conversion data equivalent voltage value (unit: mVolt)
+  */
+#define __ADC_CALC_DATA_VOLTAGE(__VREFANALOG_VOLTAGE__, __ADC_DATA__)       \
+  ((__ADC_DATA__) * (__VREFANALOG_VOLTAGE__) / DIGITAL_SCALE_12BITS)
+
 
 /* External variables ---------------------------------------------------------*/
 
@@ -60,6 +85,14 @@ static uint32_t LED_tick = 0;
 static bool boot_btn = false;
 
 static volatile bool sleep_flag = false;
+
+static int retsd_sta = 0;
+
+/* Variables for ADC conversion data */
+static volatile uint16_t   uhADCxConvertedData = VAR_CONVERTED_DATA_INIT_VALUE; /* ADC group regular conversion data */
+
+/* Variables for ADC conversion data computation to physical values */
+static volatile uint16_t   uhADCxConvertedData_Voltage_mVolt = 0;  /* Value of voltage calculated from ADC conversion data (unit: mV) */
 
 /* Overwrite functions ---------------------------------------------------------*/
 void SystemClock_Decrease(void)
@@ -134,6 +167,7 @@ void Entry_SleepMode(void)
     // BSP_LED_DeInit(LED2);
     HAL_SPI_MspDeInit(&hspi1);
     HAL_RTC_MspDeInit(&hrtc);
+    HAL_ADC_MspInit(&hadc);
 
     SystemClock_Decrease();
 
@@ -215,6 +249,32 @@ bool Boot_GetBtnStatus(void)
 }
 
 /* FreeRTOS define ------------------------------------------------------------*/
+
+static void Bat_VOT_ADC_Chk(void)
+{
+    if (HAL_ADC_Start(&hadc) != HAL_OK)
+    {
+        /* ADC conversion start error */
+        Error_Handler();
+    }
+    if (HAL_ADC_PollForConversion(&hadc, 10) != HAL_OK)
+    {
+      /* End Of Conversion flag not set on time */
+      Error_Handler();
+    }
+    else
+    {
+      /* Retrieve ADC conversion data */
+      uhADCxConvertedData = HAL_ADC_GetValue(&hadc);
+      
+      /* Computation of ADC conversions raw data to physical values           */
+      /* using helper macro.                                                  */
+      uhADCxConvertedData_Voltage_mVolt = __ADC_CALC_DATA_VOLTAGE(VDDA_APPLI, uhADCxConvertedData) * 2;
+
+      LOG_INFO("[%d] Volt:%d.%-2dV\n", uhADCxConvertedData, uhADCxConvertedData_Voltage_mVolt/1000, (uhADCxConvertedData_Voltage_mVolt%1000)/10);
+    }
+}
+
 static void Lora_Pocess(void *argument)
 {
     UNUSED(argument);
@@ -233,16 +293,29 @@ static void Lora_Pocess(void *argument)
 
     for (;;)
     {
+
+        Bat_VOT_ADC_Chk();
+
 #if STM32_LORA_MODE_TX
         LED2_TRI;
+
+        // line 2
         snprintf((char *)BufferTx, MAX_APP_BUFFER_SIZE, "%s%d", TEXT_INFO, cnt++);
         snprintf(buf, 16, "TX:      #%d", cnt);
-        OLED_ShowString(0, 32, buf, 16, 1);
+        OLED_ShowString(0, 16, buf, 16, 1);
+
+        // line 4
+        snprintf(buf, 32, "SD:%s    Volt:%d.%03d", (retsd_sta == 0 ? " -- " : "PASS"), uhADCxConvertedData_Voltage_mVolt/1000, (uhADCxConvertedData_Voltage_mVolt%1000));
+        OLED_ShowString(0, 50, buf, 8, 1);
 
         LOG_TRACE("%s\n", BufferTx);
         Radio.Send(BufferTx, PAYLOAD_LEN);
 #elif STM32_LORA_MODE_RX
         Radio.Rx(RX_TIMEOUT_VALUE);
+
+        // line 4
+        snprintf(buf, 32, "SD:%s    Volt:%d.%03d", (retsd_sta == 0 ? " -- " : "PASS"), uhADCxConvertedData_Voltage_mVolt/1000, (uhADCxConvertedData_Voltage_mVolt%1000));
+        OLED_ShowString(0, 50, buf, 8, 1);
 #endif
         osDelay(1000);
     }
@@ -251,9 +324,9 @@ static void Lora_Pocess(void *argument)
 static void Oled_ShowPocess(void *arg)
 {
     int chk_sd = 0;
-    char buf[16];
+    char buf[32];
 
-    int retsd = sdcard_init();
+    retsd_sta = sdcard_init();
 
     OLED_Init();
 #if STM32_LORA_MODE_TX
@@ -261,15 +334,15 @@ static void Oled_ShowPocess(void *arg)
     OLED_ShowString(40, 0, "LORA-TX ", 16, 1);
 
     // line 2
-    snprintf(buf, 16, "Freq:    %dMHz", (RF_FREQUENCY / 1000000));
-    OLED_ShowString(0, 16, buf, 16, 1);
+    OLED_ShowString(0, 16, "TX:      #", 16, 1);
 
     // line 3
-    OLED_ShowString(0, 32, "TX:      #", 16, 1);
+    snprintf(buf, 32, "Freq:%dM  TPWR:%ddBm", (RF_FREQUENCY / 1000000), TX_OUTPUT_POWER);
+    OLED_ShowString(0, 38, buf, 8, 1);
 
     // line 4
-    snprintf(buf, 16, "PWR:     %ddBm", TX_OUTPUT_POWER);
-    OLED_ShowString(0, 48, buf, 16, 1);
+    snprintf(buf, 32, "SD:%s    Volt:%4dV", (retsd_sta == 0 ? " -- " : "PASS"), 0);
+    OLED_ShowString(0, 50, buf, 8, 1);
 
 #elif STM32_LORA_MODE_RX
 
@@ -277,33 +350,32 @@ static void Oled_ShowPocess(void *arg)
     OLED_ShowString(40, 0, "LORA-RX ", 16, 1);
 
     // line 2
-    snprintf(buf, 16, "Freq:    %dMHz", (RF_FREQUENCY / 1000000));
+    snprintf(buf, 32, "RX: %s", BufferRx);
     OLED_ShowString(0, 16, buf, 16, 1);
 
     // line 3
-    snprintf(buf, 16, "RX: %s", BufferRx);
-    OLED_ShowString(0, 32, buf, 16, 1);
+    snprintf(buf, 32, "Freq:%dM  RSSI:%3ddB", (RF_FREQUENCY / 1000000), RssiValue);
+    OLED_ShowString(0, 38, buf, 8, 1);
 
     // line 4
-    snprintf(buf, 16, "RSSI:%ddBm", RssiValue);
-    OLED_ShowString(0, 48, buf, 16, 1);
+    snprintf(buf, 32, "SD:%s    Volt:%4dV", (retsd_sta == 0 ? " -- " : "PASS"), 0);
+    OLED_ShowString(0, 50, buf, 8, 1);
 
 #endif
 
-    // snprintf(buf, 16, "SD: %s", sdcard_get_type_str());
-    // OLED_ShowString(0, 48, buf, 16, 1);
+    int rand_cnt = 0;
 
     for (;;)
     {
 #if STM32_LORA_MODE_RX
         RxFinishFlag = false;
-        // line 3
-        snprintf(buf, 16, "RX: %s", BufferRx);
-        OLED_ShowString(0, 32, buf, 16, 1);
+        // line 2
+        snprintf(buf, 16, "RX: %s    ", BufferRx);
+        OLED_ShowString(0, 16, buf, 16, 1);
 
-        // line 4
-        snprintf(buf, 16, "RSSI:%ddBm", RssiValue);
-        OLED_ShowString(0, 48, buf, 16, 1);
+        // line 3
+        snprintf(buf, 32, "Freq:%dM  RSSI:%3ddB", (RF_FREQUENCY / 1000000), RssiValue);
+        OLED_ShowString(0, 38, buf, 8, 1);
 #endif
 
         OLED_Refresh();

@@ -5,7 +5,7 @@
 
 #include "main.h"
 
-#define STM32_LORA_MODE_TX (0)
+#define STM32_LORA_MODE_TX (1)
 #define STM32_LORA_MODE_RX (!STM32_LORA_MODE_TX)
 
 #define TX_OUTPUT_POWER 22

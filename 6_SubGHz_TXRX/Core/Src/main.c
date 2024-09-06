@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "adc.h"
 #include "dma.h"
 #include "spi.h"
 #include "app_subghz_phy.h"
@@ -93,8 +94,13 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_SPI1_Init();
+  MX_ADC_Init();
   /* USER CODE BEGIN 2 */
-
+  if (HAL_ADCEx_Calibration_Start(&hadc) != HAL_OK)
+  {
+    /* Calibration Error */
+    Error_Handler();
+  }
   /* USER CODE END 2 */
 
   /* Init scheduler */
