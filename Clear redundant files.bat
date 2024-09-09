@@ -18,22 +18,22 @@ call :appendFileList DeepSleep
 
 REM 遍历列表并输出文件名
 for %%i in (%fileList%) do (
-    rmdir /s /q %%i\MDK-ARM\RTE
-    rmdir /s /q %%i\.vscode
+    rmdir /s /q examples\%%i\MDK-ARM\RTE
+    rmdir /s /q examples\%%i\.vscode
 
-    del %%i\MDK-ARM\*.lyy
-    del %%i\MDK-ARM\*.txt
-    del %%i\MDK-ARM\*.ini
-    del %%i\MDK-ARM\*.scvd
+    del examples\%%i\MDK-ARM\*.lyy
+    del examples\%%i\MDK-ARM\*.txt
+    del examples\%%i\MDK-ARM\*.ini
+    del examples\%%i\MDK-ARM\*.scvd
 
-    del %%i\MDK-ARM\%%i\*.o
-    del %%i\MDK-ARM\%%i\*.d
-    del %%i\MDK-ARM\%%i\*.htm
-    del %%i\MDK-ARM\%%i\*.dep
-    del %%i\MDK-ARM\%%i\*.map
-    del %%i\MDK-ARM\%%i\*.lnp
-    del %%i\MDK-ARM\%%i\*.axf
-    del %%i\MDK-ARM\%%i\*.iex
+    del examples\%%i\MDK-ARM\%%i\*.o
+    del examples\%%i\MDK-ARM\%%i\*.d
+    del examples\%%i\MDK-ARM\%%i\*.htm
+    del examples\%%i\MDK-ARM\%%i\*.dep
+    del examples\%%i\MDK-ARM\%%i\*.map
+    del examples\%%i\MDK-ARM\%%i\*.lnp
+    del examples\%%i\MDK-ARM\%%i\*.axf
+    del examples\%%i\MDK-ARM\%%i\*.iex
     echo %%i
 )
 

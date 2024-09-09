@@ -5,7 +5,7 @@ test_send
 .vscode
 
 RF_test/
-3_sdcard/User/bsp_spi_sdcard.h
-3_sdcard/User/bsp_spi_sdcard.c
-3_sdcard/User/sdcard_temp.c
-3_sdcard/User/sdcard_temp.h
+examples/3_sdcard/User/bsp_spi_sdcard.h
+examples/3_sdcard/User/bsp_spi_sdcard.c
+examples/3_sdcard/User/sdcard_temp.c
+examples/3_sdcard/User/sdcard_temp.h
