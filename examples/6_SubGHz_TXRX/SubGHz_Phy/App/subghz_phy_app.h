@@ -43,6 +43,7 @@ extern "C" {
 
 // #define RF_FREQUENCY                                868000000 /* Hz */
 #define RF_FREQUENCY                                434000000 /* Hz */
+// #define RF_FREQUENCY                                850000000 /* Hz */
 
 #ifndef TX_OUTPUT_POWER   /* please, to change this value, redefine it in USER CODE SECTION */
 #define TX_OUTPUT_POWER                             22        /* dBm */

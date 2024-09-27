@@ -409,6 +409,6 @@ void user_loop(void)
 
     if(sleep_flag)
     {
-        Entry_SleepMode();
+        // Entry_SleepMode();
     }
 }

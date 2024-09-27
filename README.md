@@ -65,5 +65,8 @@ If you use STM32CubeProgrammer, you can:
 
 ## stlink download
 
+TODO...
 
 ## UART download
+
+TODO...
