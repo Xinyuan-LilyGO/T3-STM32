@@ -63,10 +63,25 @@ If you use STM32CubeProgrammer, you can:
 
 ![alt text](docs/image/image-4.png)
 
-## stlink download
-
-TODO...
 
 ## UART download
 
-TODO...
+Insert the device into the power supply and enter the download mode.
+
+Press and hold the `boot` key, then click the `rst` key; At last, first release the `rst` key, then release the `boot` key;
+
+1. Select the UART download mode
+2. Select the correct serial port
+3. RTS/DTR Select Negative pulse mode
+4. Finally click Connect
+
+![alt text](docs/image/image-5.png)
+
+After the connection is successful, you can click the `+` sign to add the firmware you want to download
+
+![alt text](docs/image/image-6.png)
+
+## STlink download
+
+
+
