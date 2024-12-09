@@ -1,0 +1,26 @@
+
+*****  Lora RX *****  
+PB2 --- 1
+PB6 --- 0
+
+*****  Lora TX *****  
+PB2 --- 0
+PB6 --- 1
+-----------------------
+
+LED1 --- PA0
+LED2 --- PA1
+
+Lora_ctrl --- PB2
+
+USART1_RX --- PA10
+USART1_TX --- PA9
+
+OLED_CS --- PB12
+OLED_DC --- PA8
+
+SD_CS --- PA4
+
+SPI1_SCK   --- PA5
+SPI1_MISO --- PA6
+SPI1_MOSI --- PA7
