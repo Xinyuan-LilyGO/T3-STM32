@@ -6,6 +6,14 @@ The STM32WL55CCU6 long-range wireless and ultra-low-power devices embed a powerf
 
 STM32WL55CCU6 256-Kbyte flash memory, 64-Kbyte SRAM
 
+## What needs to be noted for `T3-STM32` is:
+- In receive mode, `PB2` pin is at a `high` level and `PB6` pin is at a `low` level.
+- In transmission mode, `PB2` pin is at a `low` level and `PB6` pin is at a `high` level.
+
+
+![alt text](./docs/image/mode_sw.png)
+
+
 # examples
 
 For more information about the examples, see the README.md file in the examples directory.
