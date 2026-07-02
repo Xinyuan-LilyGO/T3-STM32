@@ -19,6 +19,8 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
+#include <string.h>
 #include "platform.h"
 #include "sys_app.h"
 #include "subghz_phy_app.h"
@@ -103,6 +105,7 @@ static void OnRxTimeout(void);
 static void OnRxError(void);
 
 /* USER CODE BEGIN PFP */
+static void FormatPayloadPreview(const uint8_t *payload, uint16_t size, char *preview, size_t preview_size);
 
 /* USER CODE END PFP */
 
@@ -144,6 +147,8 @@ static void OnTxDone(void)
 static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraSnr_FskCfo)
 {
   /* USER CODE BEGIN OnRxDone */
+  char payload_preview[33];
+
 #if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
   /* Record payload Signal to noise ratio in Lora*/
   SnrValue = LoraSnr_FskCfo;
@@ -155,10 +160,11 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
   /* Update the State of the FSM*/
   State = RX;
 
+  FormatPayloadPreview(payload, size, payload_preview, sizeof(payload_preview));
   APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
   APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
-  APP_LOG(TS_ON, VLEVEL_L, "rec:%s\n", payload);
-  LOG_INFO("rec:%s,rssi;%d, snr=%d\n", payload, rssi, LoraSnr_FskCfo);
+  APP_LOG(TS_ON, VLEVEL_L, "rec[%d]=%s\n\r", size, payload_preview);
+  LOG_INFO("rec[%d]=%s,rssi=%d,snr=%d\n", size, payload_preview, rssi, LoraSnr_FskCfo);
 
   LED1_TRI;
   
@@ -203,5 +209,37 @@ static void OnRxError(void)
 }
 
 /* USER CODE BEGIN PrFD */
+static void FormatPayloadPreview(const uint8_t *payload, uint16_t size, char *preview, size_t preview_size)
+{
+  uint16_t preview_len;
+  size_t write_idx;
+  uint16_t i;
+
+  if ((preview == NULL) || (preview_size == 0U))
+  {
+    return;
+  }
+
+  preview[0] = '\0';
+  if ((payload == NULL) || (size == 0U))
+  {
+    return;
+  }
+
+  preview_len = (size < 16U) ? size : 16U;
+  write_idx = 0U;
+
+  for (i = 0U; i < preview_len; i++)
+  {
+    int written = snprintf(&preview[write_idx], preview_size - write_idx, "%02X", payload[i]);
+
+    if ((written < 0) || ((size_t)written >= (preview_size - write_idx)))
+    {
+      preview[preview_size - 1U] = '\0';
+      return;
+    }
+    write_idx += (size_t)written;
+  }
+}
 
 /* USER CODE END PrFD */

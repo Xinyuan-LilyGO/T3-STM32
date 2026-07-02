@@ -7,6 +7,7 @@
 #include "sys_app.h"
 #include "subghz_phy_app.h"
 #include "radio.h"
+#include "radio_driver.h"
 #include "cmsis_os.h"
 #include "lib_log.h"
 #include "oled.h"
@@ -21,6 +22,7 @@
 #define TEXT_INFO "# "
 
 #define DIGITAL_SCALE_12BITS             ((uint32_t) 0xFFF)
+#define LORA_RX_PREVIEW_BYTES            6U
 
 /* Init variable out of ADC expected conversion data range */
 #define VAR_CONVERTED_DATA_INIT_VALUE    (DIGITAL_SCALE_12BITS + 1)
@@ -93,6 +95,45 @@ static volatile uint16_t   uhADCxConvertedData = VAR_CONVERTED_DATA_INIT_VALUE; 
 
 /* Variables for ADC conversion data computation to physical values */
 static volatile uint16_t   uhADCxConvertedData_Voltage_mVolt = 0;  /* Value of voltage calculated from ADC conversion data (unit: mV) */
+
+static void Radio_SetCustomLoRaSyncWord(void)
+{
+    SUBGRF_WriteRegister(REG_LR_SYNCWORD, LORA_SYNC_WORD_MSB);
+    SUBGRF_WriteRegister(REG_LR_SYNCWORD + 1U, LORA_SYNC_WORD_LSB);
+}
+
+static void FormatPayloadPreview(char *out, size_t out_size, const uint8_t *payload, uint16_t payload_size)
+{
+    uint16_t preview_len;
+    size_t write_idx;
+    uint16_t i;
+
+    if ((out == NULL) || (out_size == 0U))
+    {
+        return;
+    }
+
+    out[0] = '\0';
+    if ((payload == NULL) || (payload_size == 0U))
+    {
+        return;
+    }
+
+    preview_len = (payload_size < LORA_RX_PREVIEW_BYTES) ? payload_size : LORA_RX_PREVIEW_BYTES;
+    write_idx = 0U;
+
+    for (i = 0U; i < preview_len; i++)
+    {
+        int written = snprintf(&out[write_idx], out_size - write_idx, "%02X", payload[i]);
+
+        if ((written < 0) || ((size_t)written >= (out_size - write_idx)))
+        {
+            out[out_size - 1U] = '\0';
+            return;
+        }
+        write_idx += (size_t)written;
+    }
+}
 
 /* Overwrite functions ---------------------------------------------------------*/
 void SystemClock_Decrease(void)
@@ -197,18 +238,21 @@ static void Lora_init(void)
     LOG_INFO("LORA_MODULATION\n\r");
     LOG_INFO("LORA_BW=%d kHz\n\r", (1 << LORA_BANDWIDTH) * 125);
     LOG_INFO("LORA_SF=%d\n\r", LORA_SPREADING_FACTOR);
+    LOG_INFO("LORA_CR=4/%d\n\r", LORA_CODINGRATE + 4);
+    LOG_INFO("LORA_SYNC=0x%02X\n\r", LORA_SYNC_WORD);
 
     Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                       LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      true, 0, 0, LORA_IQ_INVERSION_ON, TX_TIMEOUT_VALUE);
+                      LORA_CRC_ENABLED, 0, 0, LORA_IQ_INVERSION_ON, TX_TIMEOUT_VALUE);
 
     Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
                       LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
                       LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
+                      0, LORA_CRC_ENABLED, 0, 0, LORA_IQ_INVERSION_ON, true);
 
     Radio.SetMaxPayloadLength(MODEM_LORA, MAX_APP_BUFFER_SIZE);
+    Radio_SetCustomLoRaSyncWord();
 
 #elif ((USE_MODEM_LORA == 0) && (USE_MODEM_FSK == 1))
     APP_LOG(TS_OFF, VLEVEL_M, "---------------\n\r");
@@ -279,7 +323,7 @@ static void Lora_Pocess(void *argument)
 {
     UNUSED(argument);
     static int cnt = 0;
-    char buf[16];
+    char buf[32];
 
 #if STM32_LORA_MODE_TX
     LORA_TX;
@@ -290,6 +334,10 @@ static void Lora_Pocess(void *argument)
 #endif
 
     Lora_init();
+
+#if STM32_LORA_MODE_RX
+    Radio.Rx(0);
+#endif
 
     for (;;)
     {
@@ -311,8 +359,6 @@ static void Lora_Pocess(void *argument)
         LOG_TRACE("%s\n", BufferTx);
         Radio.Send(BufferTx, PAYLOAD_LEN);
 #elif STM32_LORA_MODE_RX
-        Radio.Rx(RX_TIMEOUT_VALUE);
-
         // line 4
         snprintf(buf, 32, "SD:%s    Volt:%d.%03d", (retsd_sta == 0 ? " -- " : "PASS"), uhADCxConvertedData_Voltage_mVolt/1000, (uhADCxConvertedData_Voltage_mVolt%1000));
         OLED_ShowString(0, 50, buf, 8, 1);
@@ -350,8 +396,7 @@ static void Oled_ShowPocess(void *arg)
     OLED_ShowString(40, 0, "LORA-RX ", 16, 1);
 
     // line 2
-    snprintf(buf, 32, "RX: %s", BufferRx);
-    OLED_ShowString(0, 16, buf, 16, 1);
+    OLED_ShowString(0, 16, "RX: --", 8, 1);
 
     // line 3
     snprintf(buf, 32, "Freq:%dM  RSSI:%3ddB", (RF_FREQUENCY / 1000000), RssiValue);
@@ -368,10 +413,13 @@ static void Oled_ShowPocess(void *arg)
     for (;;)
     {
 #if STM32_LORA_MODE_RX
+        char rx_preview[2 * LORA_RX_PREVIEW_BYTES + 1];
+
         RxFinishFlag = false;
+        FormatPayloadPreview(rx_preview, sizeof(rx_preview), BufferRx, RxBufferSize);
         // line 2
-        snprintf(buf, 16, "RX: %s    ", BufferRx);
-        OLED_ShowString(0, 16, buf, 16, 1);
+        snprintf(buf, 32, "RX:%s", rx_preview[0] != '\0' ? rx_preview : "--");
+        OLED_ShowString(0, 16, buf, 8, 1);
 
         // line 3
         snprintf(buf, 32, "Freq:%dM  RSSI:%3ddB", (RF_FREQUENCY / 1000000), RssiValue);
