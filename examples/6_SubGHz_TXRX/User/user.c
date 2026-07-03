@@ -96,12 +96,6 @@ static volatile uint16_t   uhADCxConvertedData = VAR_CONVERTED_DATA_INIT_VALUE; 
 /* Variables for ADC conversion data computation to physical values */
 static volatile uint16_t   uhADCxConvertedData_Voltage_mVolt = 0;  /* Value of voltage calculated from ADC conversion data (unit: mV) */
 
-static void Radio_SetCustomLoRaSyncWord(void)
-{
-    SUBGRF_WriteRegister(REG_LR_SYNCWORD, LORA_SYNC_WORD_MSB);
-    SUBGRF_WriteRegister(REG_LR_SYNCWORD + 1U, LORA_SYNC_WORD_LSB);
-}
-
 static void FormatPayloadPreview(char *out, size_t out_size, const uint8_t *payload, uint16_t payload_size)
 {
     uint16_t preview_len;
@@ -239,7 +233,9 @@ static void Lora_init(void)
     LOG_INFO("LORA_BW=%d kHz\n\r", (1 << LORA_BANDWIDTH) * 125);
     LOG_INFO("LORA_SF=%d\n\r", LORA_SPREADING_FACTOR);
     LOG_INFO("LORA_CR=4/%d\n\r", LORA_CODINGRATE + 4);
-    LOG_INFO("LORA_SYNC=0x%02X\n\r", LORA_SYNC_WORD);
+    LOG_INFO("LORA_PREAMBLE=%d\n\r", LORA_PREAMBLE_LENGTH);
+    LOG_INFO("LORA_CRC=%d\n\r", LORA_CRC_ENABLED);
+    LOG_INFO("LORA_NET=PRIVATE\n\r");
 
     Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
@@ -252,7 +248,7 @@ static void Lora_init(void)
                       0, LORA_CRC_ENABLED, 0, 0, LORA_IQ_INVERSION_ON, true);
 
     Radio.SetMaxPayloadLength(MODEM_LORA, MAX_APP_BUFFER_SIZE);
-    Radio_SetCustomLoRaSyncWord();
+    Radio.SetPublicNetwork(false);
 
 #elif ((USE_MODEM_LORA == 0) && (USE_MODEM_FSK == 1))
     APP_LOG(TS_OFF, VLEVEL_M, "---------------\n\r");
@@ -396,7 +392,7 @@ static void Oled_ShowPocess(void *arg)
     OLED_ShowString(40, 0, "LORA-RX ", 16, 1);
 
     // line 2
-    OLED_ShowString(0, 16, "RX: --", 8, 1);
+    OLED_ShowString(0, 16, "RX: --              ", 8, 1);
 
     // line 3
     snprintf(buf, 32, "Freq:%dM  RSSI:%3ddB", (RF_FREQUENCY / 1000000), RssiValue);
@@ -418,7 +414,7 @@ static void Oled_ShowPocess(void *arg)
         RxFinishFlag = false;
         FormatPayloadPreview(rx_preview, sizeof(rx_preview), BufferRx, RxBufferSize);
         // line 2
-        snprintf(buf, 32, "RX:%s", rx_preview[0] != '\0' ? rx_preview : "--");
+        snprintf(buf, 32, "RX:%-18s", rx_preview[0] != '\0' ? rx_preview : "--");
         OLED_ShowString(0, 16, buf, 8, 1);
 
         // line 3

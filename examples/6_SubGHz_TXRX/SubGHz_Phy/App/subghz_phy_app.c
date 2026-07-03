@@ -106,6 +106,10 @@ static void OnRxError(void);
 
 /* USER CODE BEGIN PFP */
 static void FormatPayloadPreview(const uint8_t *payload, uint16_t size, char *preview, size_t preview_size);
+static uint8_t Ra08Checksum8(const uint8_t *payload, uint16_t size);
+static bool ParseRa08TransparentFrame(const uint8_t *frame, uint16_t size,
+                                      uint16_t *from_addr, uint16_t *to_addr,
+                                      const uint8_t **app_payload, uint16_t *app_size);
 
 /* USER CODE END PFP */
 
@@ -148,6 +152,8 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
 {
   /* USER CODE BEGIN OnRxDone */
   char payload_preview[33];
+  const uint8_t *display_payload = payload;
+  uint16_t display_size = size;
 
 #if ((USE_MODEM_LORA == 1) && (USE_MODEM_FSK == 0))
   /* Record payload Signal to noise ratio in Lora*/
@@ -160,23 +166,56 @@ static void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t LoraS
   /* Update the State of the FSM*/
   State = RX;
 
-  FormatPayloadPreview(payload, size, payload_preview, sizeof(payload_preview));
+#if RA08_TRANSPARENT_COMPAT
+  {
+    uint16_t from_addr = 0U;
+    uint16_t to_addr = 0U;
+    const uint8_t *app_payload = NULL;
+    uint16_t app_size = 0U;
+
+    if (!ParseRa08TransparentFrame(payload, size, &from_addr, &to_addr, &app_payload, &app_size))
+    {
+      FormatPayloadPreview(payload, size, payload_preview, sizeof(payload_preview));
+      APP_LOG(TS_ON, VLEVEL_L, "Ignore non-Ra08 frame: rec[%d]=%s\n\r", size, payload_preview);
+      return;
+    }
+
+    if (to_addr != RA08_LOCAL_ADDR)
+    {
+      FormatPayloadPreview(app_payload, app_size, payload_preview, sizeof(payload_preview));
+      APP_LOG(TS_ON, VLEVEL_L, "Ignore frame %u->%u: rec[%d]=%s\n\r",
+              (unsigned int)from_addr, (unsigned int)to_addr, app_size, payload_preview);
+      return;
+    }
+
+    display_payload = app_payload;
+    display_size = app_size;
+    FormatPayloadPreview(display_payload, display_size, payload_preview, sizeof(payload_preview));
+    APP_LOG(TS_ON, VLEVEL_L, "OnRxDone %u->%u\n\r", (unsigned int)from_addr, (unsigned int)to_addr);
+    APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
+    APP_LOG(TS_ON, VLEVEL_L, "rec[%d]=%s\n\r", display_size, payload_preview);
+    LOG_INFO("ra08[%u->%u] rec[%d]=%s,rssi=%d,snr=%d\n",
+             (unsigned int)from_addr, (unsigned int)to_addr, display_size, payload_preview, rssi, LoraSnr_FskCfo);
+  }
+#else
+  FormatPayloadPreview(display_payload, display_size, payload_preview, sizeof(payload_preview));
   APP_LOG(TS_ON, VLEVEL_L, "OnRxDone\n\r");
   APP_LOG(TS_ON, VLEVEL_L, "RssiValue=%d dBm, SnrValue=%ddB\n\r", rssi, LoraSnr_FskCfo);
-  APP_LOG(TS_ON, VLEVEL_L, "rec[%d]=%s\n\r", size, payload_preview);
-  LOG_INFO("rec[%d]=%s,rssi=%d,snr=%d\n", size, payload_preview, rssi, LoraSnr_FskCfo);
+  APP_LOG(TS_ON, VLEVEL_L, "rec[%d]=%s\n\r", display_size, payload_preview);
+  LOG_INFO("rec[%d]=%s,rssi=%d,snr=%d\n", display_size, payload_preview, rssi, LoraSnr_FskCfo);
+#endif
 
   LED1_TRI;
   
   /* Clear BufferRx*/
   memset(BufferRx, 0, MAX_APP_BUFFER_SIZE);
   /* Record payload size*/
-  RxBufferSize = size;
+  RxBufferSize = display_size;
   RxFinishFlag = true;
   RssiValue = rssi;
   if (RxBufferSize <= MAX_APP_BUFFER_SIZE)
   {
-    memcpy(BufferRx, payload, RxBufferSize);
+    memcpy(BufferRx, display_payload, RxBufferSize);
   }
   /* USER CODE END OnRxDone */
 }
@@ -240,6 +279,48 @@ static void FormatPayloadPreview(const uint8_t *payload, uint16_t size, char *pr
     }
     write_idx += (size_t)written;
   }
+}
+
+static uint8_t Ra08Checksum8(const uint8_t *payload, uint16_t size)
+{
+  uint16_t i;
+  uint8_t checksum = 0U;
+
+  if (payload == NULL)
+  {
+    return 0U;
+  }
+
+  for (i = 0U; i < size; i++)
+  {
+    checksum = (uint8_t)(checksum + payload[i]);
+  }
+
+  checksum = (uint8_t)(~checksum + 1U);
+  return checksum;
+}
+
+static bool ParseRa08TransparentFrame(const uint8_t *frame, uint16_t size,
+                                      uint16_t *from_addr, uint16_t *to_addr,
+                                      const uint8_t **app_payload, uint16_t *app_size)
+{
+  if ((frame == NULL) || (size < 5U) || (from_addr == NULL) || (to_addr == NULL) ||
+      (app_payload == NULL) || (app_size == NULL))
+  {
+    return false;
+  }
+
+  if (Ra08Checksum8(frame, (uint16_t)(size - 1U)) != frame[size - 1U])
+  {
+    return false;
+  }
+
+  *from_addr = (uint16_t)(((uint16_t)frame[0] << 8) | frame[1]);
+  *to_addr = (uint16_t)(((uint16_t)frame[2] << 8) | frame[3]);
+  *app_payload = &frame[4];
+  *app_size = (uint16_t)(size - 5U);
+
+  return true;
 }
 
 /* USER CODE END PrFD */
