@@ -15,6 +15,7 @@ call :appendFileList 5_RF_test
 call :appendFileList 6_SubGHz_TXRX
 call :appendFileList PingPong
 call :appendFileList DeepSleep
+call :appendFileList Ra-08
 
 REM 遍历列表并输出文件名
 for %%i in (%fileList%) do (

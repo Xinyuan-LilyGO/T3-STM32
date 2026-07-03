@@ -1,0 +1,110 @@
+固件启动信息：
+/************************************************************************
+*************************************************************************
+*                         ASR6601 LoRa Test                     		        	 *
+*           fix RF switch with ANT_SW_CTRL and IO47(C15)              	 *
+* version:v0.0.4(Oct  6 2022-19:44:33)                          	        	 *
+* Available commands are:                                          		 *
+* AT+CTX=<freq>,<data_rate>,<bandwidth>,<code_rate>,<pwr>    *
+* AT+CRX=<freq>,<data_rate>,<bandwidth>,<code_rate>                *
+* AT+CRXS=<freq>,<data_rate>,<bandwidth>,<code_rate>              *
+*************************************************************************
+************************************************************************/
+
+AT指令：
+1、AT+CTX=<freq>,<data_rate>,<bandwidth>,<code_rate>,<pwr>,<iqconverted>：配置发射相关参数，启动发送，并进入透传（接收串口透传数据标志：“>”，发送指令“+++\r\n”退出透传模式）
+	1) freq：配置发射频率
+	2) data_rate：配置速率，共八个等级，分别表示
+		 0：SF12
+ 		1：SF11
+ 		2：SF10
+ 		3：SF9
+ 		4：SF8
+ 		5：SF7
+ 		6：SF6
+ 		7：SF5
+	3) bandwidth：配置带宽，0~9，分别表示
+		 0：125 KHz
+ 		1：250 KHz
+ 		2：500 KHz
+ 		3：62.5 KHz
+ 		4：41.67 KHz
+ 		5：31.25 KHz
+ 		6：20.83 Hz
+ 		7：15.63 Hz
+ 		8：10.42 KHz
+ 		9：7.81 KHz
+	4) code_rate：编码率，1~4，分别表示
+		1 ： 4/5
+		2 ：4/6 
+		3 ：4/7
+		4 ：4/8
+	5) pwr：配置发射功率，0~22
+	6) iqconverted：IQ转换功能，0或1，0：关闭，1：开启
+	
+2、AT+CRX=<freq>,<data_rate>,<bandwidth>,<code_rate>：配置接收相关参数，并启动接收，使用HEX格式打印数据
+	1）freq：配置接收频率
+	2）data_rate：配置速率，共八个等级，分别表示
+		 0：SF12
+ 		1：SF11
+ 		2：SF10
+ 		3：SF9
+ 		4：SF8
+ 		5：SF7
+ 		6：SF6
+ 		7：SF5
+	3）bandwidth：配置带宽，0~9，分别表示
+		 0：125 KHz
+ 		1：250 KHz
+ 		2：500 KHz
+ 		3：62.5 KHz
+ 		4：41.67 KHz
+ 		5：31.25 KHz
+ 		6：20.83 Hz
+ 		7：15.63 Hz
+ 		8：10.42 KHz
+ 		9：7.81 KHz
+	4）code_rate：编码率，1~4，分别表示
+		1 ： 4/5
+		2 ：4/6 
+		3 ：4/7
+		4 ：4/8
+                5）iqconverted：IQ转换功能，0或1，0：关闭，1：开启
+
+3、AT+CRXS=<freq>,<data_rate>,<bandwidth>,<code_rate>：配置接收相关参数，并启动接收，使用字符串格式打印数据
+	1）freq：配置接收频率
+	2）data_rate：配置速率，共八个等级，分别表示
+		 0：SF12
+ 		1：SF11
+ 		2：SF10
+ 		3：SF9
+ 		4：SF8
+ 		5：SF7
+ 		6：SF6
+ 		7：SF5
+	3）bandwidth：配置带宽，0~9，分别表示
+		 0：125 KHz
+ 		1：250 KHz
+ 		2：500 KHz
+ 		3：62.5 KHz
+ 		4：41.67 KHz
+ 		5：31.25 KHz
+ 		6：20.83 KHz
+ 		7：15.63 KHz
+ 		8：10.42 KHz
+ 		9：7.81 KHz
+	4）code_rate：编码率，1~4，分别表示
+		1 ： 4/5
+		2 ：4/6 
+		3 ：4/7
+		4 ：4/8
+                5）iqconverted：IQ转换功能，0或1，0：关闭，1：开启
+
+4、AT+CADDRSET=<local_addr>：配置本地地址，地址为无符号十六位数据，默认本地地址为0
+
+
+5、AT+CTXADDRSET=<target_addr>：配置发送数据到目标地址，地址为无符号十六位数据，默认目标地址为1
+
+
+6、AT+CSLEEP=<sleep_mode>：设置进入睡眠模式，并配置唤醒模式（串口中断方式唤醒）
+	1）sleep_mode：唤醒模式，参数为0或者1，0：热启动；1：冷启动
