@@ -1,8 +1,23 @@
 <h1 align = "center">🏆 T3-STM32 🏆</h1>
 
+**English | [中文](README_CN.md)**
+
 # project
 
 The STM32WL55CCU6 long-range wireless and ultra-low-power devices embed a powerful and ultra-low-power LPWAN-compliant radio solution, enabling the following modulations: LoRa®, (G)FSK, (G)MSK, and BPSK.
+
+
+- Frequency range: 150 MHz to 960 MHz
+- Modulation: LoRa®, (G)FSK, (G)MSK and BPSK
+- RX sensitivity: –123 dBm for 2-FSK(at 1.2 Kbit/s), –148 dBm for LoRa® (at 10.4 kHz, spreading factor 12)
+- Transmitter high output power, programmable up to +22 dBm
+-  Transmitter low output power, programmable up to +15 dBm
+- Available integrated passive device (IPD)
+companion chips for optimized matching,
+filtering and balun, all in one very compact
+solution covering each package and each main
+use cases (22 dBm @ 915 MHz,
+14 dBm @ 868 MHz, 17 dBm @ 490 MHz)
 
 STM32WL55CCU6 256-Kbyte flash memory, 64-Kbyte SRAM
 
@@ -31,6 +46,7 @@ Refer to the STM32CubeMX resource pack for more example. It is usually under pat
 ├─6_SubGHz_TXRX : Transceiver test using Lora modulation
 ├─DeepSleep : Test board sleep power consumption
 ├─PingPong : Port CubeMX package SubGHz_Phy_PingPong program
+├─Ra-08: LoRa wireless communication is controlled via serial port AT commands using the Ra-08 (ASR6601) module
 ~~~
 
 # firmware
