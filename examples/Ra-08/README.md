@@ -4,124 +4,41 @@
 
 Based on the Q443-T3-STM32 board, controls the Ra-08 (ASR6601) LoRa module via serial AT commands.
 
-Reference: https://docs.ai-thinker.com/Ra-08/
+Reference:
+- ai-thinker: https://docs.ai-thinker.com/Ra-08/
+- AT command reference: [AT Commands](./AT_Commands.md)
 
 ## Quick Start
 
-Connect the board via serial (115200 baud). On power-up, the console prints the available commands. Type AT commands directly to operate.
+Connect the board via serial (baud rate 9600). On power-up, the console prints the available commands. Type AT commands directly to operate.
 
 ### Two-board Communication Example
 
-**Transmitter**
+Test devices:
+![](./image/device.png)
+
+#### LilyGo-T3 Setup (Transmitter)
+
+- Flash the [examples/Ra-08](https://github.com/Xinyuan-LilyGO/T3-STM32/tree/master/examples/Ra-08/MDK-ARM/Ra-08) firmware
+- Send the following AT commands via serial (baud rate 9600):
 
 ```
 AT+CTXADDRSET=12        # target address = 12 (receiver's local address)
 AT+CADDRSET=13          # local address = 13
-AT+CTX=433000000,7,2,2,22,0
+AT+CTX=920800000,7,2,2,22,0
 ```
 
 After entering transparent transmission mode (prompt `>`), serial input is sent directly. Type `+++\r\n` to exit.
 
-**Receiver**
+#### Ra-08 Setup (Receiver)
+
+- Flash the [ra-08_lora_transparent_at_20221118_lpuart_addr](https://aithinker-static.oss-cn-shenzhen.aliyuncs.com/docs/_media_old/ra-08_lora_transparent_at_20221118_lpuart_addr.zip) firmware
+  ![](./image/download_cn.png)
+- Send the following AT commands via serial (baud rate 9600):
 
 ```
 AT+CADDRSET=12          # local address = 12 (matches transmitter's target address)
-AT+CRXS=433000000,7,2,2,0
+AT+CRXS=920800000,7,2,2,0
 ```
 
 Received data is printed as a string.
-
----
-
-## AT Command Reference
-
-### `AT+CTX` — Transmit (transparent mode)
-
-```
-AT+CTX=<freq>,<data_rate>,<bandwidth>,<code_rate>,<pwr>,<iqconverted>
-```
-
-Configures TX parameters, starts transmission, and enters transparent mode.
-
-### `AT+CRX` — Receive (HEX output)
-
-```
-AT+CRX=<freq>,<data_rate>,<bandwidth>,<code_rate>,<iqconverted>
-```
-
-### `AT+CRXS` — Receive (string output)
-
-```
-AT+CRXS=<freq>,<data_rate>,<bandwidth>,<code_rate>,<iqconverted>
-```
-
-### `AT+CADDRSET` — Set local address
-
-```
-AT+CADDRSET=<local_addr>
-```
-
-Unsigned 16-bit integer, default 0.
-
-### `AT+CTXADDRSET` — Set target address
-
-```
-AT+CTXADDRSET=<target_addr>
-```
-
-Unsigned 16-bit integer, default 1. Must match the receiver's local address.
-
-### `AT+CSLEEP` — Sleep mode
-
-```
-AT+CSLEEP=<sleep_mode>    # 0: warm start wake-up, 1: cold start wake-up
-```
-
----
-
-## Parameter Reference
-
-### `data_rate` (Spreading Factor)
-
-| Value | SF |
-|-------|----|
-| 0 | SF12 |
-| 1 | SF11 |
-| 2 | SF10 |
-| 3 | SF9 |
-| 4 | SF8 |
-| 5 | SF7 |
-| 6 | SF6 |
-| 7 | SF5 |
-
-### `bandwidth`
-
-| Value | Bandwidth |
-|-------|-----------|
-| 0 | 125 KHz |
-| 1 | 250 KHz |
-| 2 | 500 KHz |
-| 3 | 62.5 KHz |
-| 4 | 41.67 KHz |
-| 5 | 31.25 KHz |
-| 6 | 20.83 KHz |
-| 7 | 15.63 KHz |
-| 8 | 10.42 KHz |
-| 9 | 7.81 KHz |
-
-### `code_rate` (Coding Rate)
-
-| Value | Rate |
-|-------|------|
-| 1 | 4/5 |
-| 2 | 4/6 |
-| 3 | 4/7 |
-| 4 | 4/8 |
-
-### `pwr` (TX Power)
-
-0 ~ 22 dBm
-
-### `iqconverted` (IQ Inversion)
-
-0: disabled, 1: enabled
